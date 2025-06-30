@@ -13,6 +13,7 @@ python version **~Python3.10**. Thereafter, execute the following commands:
 python -m venv forestfires
 source forestfires/bin/activate
 pip install -e DomiRank/.
+pip install -r requirements.txt
 cd pyregence
 python setup.py install
 cd ..

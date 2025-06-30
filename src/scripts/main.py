@@ -1,47 +1,35 @@
 #==============================================================import os
 import os
+import sys
 import numpy as np
-import rasterio
 from pyretechnics.space_time_cube import SpaceTimeCube
 import pyretechnics.eulerian_level_set as els
 import time
 import pprint
+import imageio
+import matplotlib.pyplot as plt
 
+script_dir   = os.path.dirname(__file__)
+project_root = os.path.abspath(os.path.join(script_dir, os.pardir, os.pardir))
+sys.path.insert(0, project_root)
+from src.utils.loadingUtils import (
+    load_raster,
+    convert_to_cube,
+        )
+from src.utils.plottingUtils import (
+    save_matrix_as_heatmap,
+    save_matrix_as_contours,
+    )
+
+# Tunable parameters
+savename = "sim"
+time_steps = 1500
+
+
+savedir = f"results/{savename}"
+os.makedirs(savedir, exist_ok = True)
 # Directory containing the already-cropped rasters
 raster_dir = "cropped_rasters"
-
-def load_raster(name, x_interval=None, y_interval=None):
-    """
-    Loads a cropped raster, optionally sub-windows it to x_interval/y_interval,
-    then flips it vertically to match simulation orientation.
-    
-    Parameters
-    ----------
-    name : str
-      Base name of the raster (without “_cropped.tif”).
-    x_interval : tuple of int (start, end), optional
-      Column indices to keep (0-based, [start:end]).
-    y_interval : tuple of int (start, end), optional
-      Row    indices to keep (0-based, [start:end]).
-      
-    Returns
-    -------
-    data : np.ndarray, float32, shape = (rows, cols)
-    """
-    path = os.path.join(raster_dir, f"{name}_cropped.tif")
-    with rasterio.open(path) as src:
-        data = src.read(1)  # full 2D array, shape (rows, cols)
-    
-    # apply subwindowing if requested
-    if y_interval is not None or x_interval is not None:
-        rows, cols = data.shape
-        y0, y1 = y_interval if y_interval is not None else (0, rows)
-        x0, x1 = x_interval if x_interval is not None else (0, cols)
-        data = data[y0:y1, x0:x1]
-    
-    # flip so row 0 becomes bottom
-    data = np.flip(data, axis=0)
-    return np.ascontiguousarray(data).astype(np.float32)
 
 # Load rasters (already cropped, no need to window)
 xsubset = (200,400)
@@ -50,41 +38,29 @@ ysubset = (100,300)
 slope = load_raster("slp", xsubset, ysubset)
 aspect = load_raster("asp", xsubset, ysubset)
 dem = load_raster("dem", xsubset, ysubset)
-canopy_cover = load_raster("cc", xsubset, ysubset) 
-canopy_bulk_density = load_raster("cbd", xsubset, ysubset) 
-canopy_base_height = load_raster("cbh", xsubset, ysubset)
-canopy_height = load_raster("ch", xsubset, ysubset)
+cc = load_raster("cc", xsubset, ysubset) 
+cbd = load_raster("cbd", xsubset, ysubset) 
+cbh = load_raster("cbh", xsubset, ysubset)
+ch = load_raster("ch", xsubset, ysubset)
 fuel_model = load_raster("fbfm", xsubset, ysubset)
-#x,xfin,y,yfin = (100, 150, 100, 150)
-#canopy_cover[x:xfin, y:yfin] = 0
-#canopy_height[x:xfin, y:yfin] = 0
-#canopy_bulk_density[x:xfin, y:yfin] = 0
-#canopy_base_height[x:xfin, y:yfin] = 0
-#fuel_model[x:xfin, y:yfin] = 0
+
+#convert to cubes
+slope_cube = convert_to_cube(slope, time_steps)
+aspect_cube = convert_to_cube(aspect, time_steps)
+dem_cube   = convert_to_cube(dem, time_steps)
+cc_cube    = convert_to_cube(cc, time_steps)
+cbd_cube   = convert_to_cube(cbd, time_steps)
+cbh_cube   = convert_to_cube(cbh, time_steps)
+ch_cube    = convert_to_cube(ch, time_steps)
+fuel_model_cube    = convert_to_cube(fuel_model, time_steps)
 
 # Define cube shape (e.g. 24 hours)
-time_steps = 1500
 rows, cols = slope.shape
 cube_shape = (time_steps, rows, cols)
 
-# Option A: np.repeat
-slope_cube = np.repeat(np.tan(np.pi/180*slope[np.newaxis, ...]), time_steps, axis=0)
-aspect_cube = np.repeat(aspect[np.newaxis, ...], time_steps, axis=0)
-dem_cube   = np.repeat(dem[np.newaxis, ...],   time_steps, axis=0)
-cc_cube    = np.repeat(canopy_cover[np.newaxis, ...],    time_steps, axis=0)/100
-cbd_cube   = np.repeat(canopy_bulk_density[np.newaxis, ...], time_steps, axis=0)/100
-cbh_cube   = np.repeat(canopy_base_height[np.newaxis, ...],   time_steps, axis=0)
-ch_cube    = np.repeat(canopy_height[np.newaxis, ...],        time_steps, axis=0)
-fuel_model_cube    = np.repeat(fuel_model[np.newaxis, ...],        time_steps, axis=0)/1000
-
-
-# Now all these *_cube arrays have shape (time_steps, rows, cols)
-print(slope_cube.shape, aspect_cube.shape, dem_cube.shape, cc_cube.shape)
-print("fuel min", fuel_model_cube.min())
-
 # Sanity check prints
 print("cube_shape:", cube_shape)
-print("canopy_shape:", canopy_cover.shape)
+print("canopy_shape:", cc.shape)
 
 # Build space-time cubes
 space_time_cubes = {
@@ -106,37 +82,15 @@ space_time_cubes = {
     "fuel_spread_adjustment"       : SpaceTimeCube(cube_shape, 1.0),
     "weather_spread_adjustment"    : SpaceTimeCube(cube_shape, 1.0),
 }
-import matplotlib.pyplot as plt
-fig, ax = plt.subplots()
-plt.imshow(space_time_cubes["aspect"].data[0,::,::])
-plt.colorbar()
-fig.savefig('aspect.png', dpi = 300)
-plt.close()
 
-fig, ax = plt.subplots()
-plt.imshow(space_time_cubes["canopy_cover"].data[0,::,::])
-plt.colorbar()
-fig.savefig('canopy_cover.png', dpi = 300)
-plt.close()
-
-fig, ax = plt.subplots()
-plt.imshow(space_time_cubes["canopy_bulk_density"].data[0,::,::])
-plt.colorbar()
-fig.savefig('canopy_bulk_density.png', dpi = 300)
-plt.close()
-
-fig, ax = plt.subplots()
-plt.imshow(space_time_cubes["fuel_model"].data[0,::,::])
-plt.colorbar()
-fig.savefig('fuel_model.png', dpi = 300)
-plt.close()
 # Day 2 @ 10:30am
 start_time = (24 * 60) + (10 * 60) + 30 # minutes
 
 # 8 hours
-max_duration = 1000 * 60 # minutes
+max_duration = int(time_steps*1/3) * 60 # minutes
 
 spread_state = els.SpreadState(cube_shape).ignite_cell((190,190))
+print(cube_shape)
 
 cube_resolution = (
     60, # band_duration: minutes
@@ -173,7 +127,6 @@ runtime_per_burned_cell = 1000.0 * simulation_runtime / num_burned_cells # ms/ce
 print("Acres Burned: " + str(acres_burned))
 print("Total Runtime: " + str(simulation_runtime) + " seconds")
 print("Runtime Per Burned Cell: " + str(runtime_per_burned_cell) + " ms/cell")
-
 
 import numpy as np
 from pprint import pprint
@@ -234,23 +187,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def save_matrix_as_heatmap(matrix, colors, units, title, filename, vmin=None, vmax=None, ticks=None):
-    image    = plt.imshow(matrix, origin="lower", cmap=colors, vmin=vmin, vmax=vmax)
-    colorbar = plt.colorbar(image, orientation="vertical", ticks=ticks)
-    colorbar.set_label(units)
-    plt.title(title)
-    plt.savefig(filename)
-    plt.close("all")
-
-
-def save_matrix_as_contours(matrix, title, filename, levels=None):
-    fig, ax = plt.subplots()
-    cs      = ax.contour(matrix, levels=levels)
-    ax.clabel(cs, inline=True, fontsize=10)
-    ax.set_aspect('equal', 'box')
-    ax.set_title(title)
-    plt.savefig(filename)
-    plt.close("all")
 
 
 # See https://matplotlib.org/stable/gallery/color/colormap_reference.html for the available options for "colors"
@@ -260,14 +196,14 @@ heatmap_configs = [
         "colors"  : "plasma",
         "units"   : "phi <= 0: burned, phi > 0: unburned",
         "title"   : "Phi",
-        "filename": "org/pics/els_phi.png",
+        "filename": f"{savedir}/els_phi.png",
     },
     {
         "matrix"  : output_matrices["fire_type"],
         "colors"  : "viridis",
         "units"   : "0=unburned, 1=surface, 2=passive_crown, 3=active_crown",
         "title"   : "Fire Type",
-        "filename": "org/pics/els_fire_type.png",
+        "filename": f"{savedir}/els_fire_type.png",
         "vmin"    : 0,
         "vmax"    : 3,
         "ticks"   : [0,1,2,3],
@@ -277,14 +213,14 @@ heatmap_configs = [
         "colors"  : "hot",
         "units"   : "m/min",
         "title"   : "Spread Rate",
-        "filename": "org/pics/els_spread_rate.png",
+        "filename": f"{savedir}/els_spread_rate.png",
     },
     {
         "matrix"  : output_matrices["spread_direction"],
         "colors"  : "viridis",
         "units"   : "degrees clockwise from North",
         "title"   : "Spread Direction",
-        "filename": "org/pics/els_spread_direction.png",
+        "filename": f"{savedir}/els_spread_direction.png",
         "vmin"    : 0,
         "vmax"    : 360,
         "ticks"   : [0,45,90,135,180,225,270,315,360]
@@ -294,14 +230,14 @@ heatmap_configs = [
         "colors"  : "hot",
         "units"   : "kW/m",
         "title"   : "Fireline Intensity",
-        "filename": "org/pics/els_fireline_intensity.png",
+        "filename": f"{savedir}/els_fireline_intensity.png",
     },
     {
         "matrix"  : output_matrices["flame_length"],
         "colors"  : "hot",
         "units"   : "meters",
         "title"   : "Flame Length",
-        "filename": "org/pics/els_flame_length.png",
+        "filename": f"{savedir}/els_flame_length.png",
     },
 ]
 
@@ -310,7 +246,7 @@ contour_configs = [
     {
         "matrix"  : output_matrices["time_of_arrival"],
         "title"   : "Time of Arrival",
-        "filename": "org/pics/els_time_of_arrival.png",
+        "filename": f"{savedir}/els_time_of_arrival.png",
         "levels"  : int(start_time) + np.asarray(range(0, int(max_duration) + 1, 60)),
     },
 ]
@@ -323,13 +259,11 @@ for heatmap_config in heatmap_configs:
 for contour_config in contour_configs:
     save_matrix_as_contours(**contour_config)
 
-print(fire_spread_results)
-import imageio
 # --- parameters for the GIF ---
 sample_interval = 200                # minutes between frames
 vmin, vmax = 0, np.log10(output_matrices["fireline_intensity"].max()+1)
-out_dir     = "gif_frames"
-gif_name    = "org/pics/fireline_intensity.gif"
+out_dir     = f"{savedir}gif_frames"
+gif_name    = f"{savedir}/fireline_intensity.gif"
 duration    = 0.5                   # seconds per frame
 
 # make sure output directory exists

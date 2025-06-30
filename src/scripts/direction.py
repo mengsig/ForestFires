@@ -1,44 +1,31 @@
 import os
+import sys
 import numpy as np
-import rasterio
 from pyretechnics.space_time_cube import SpaceTimeCube
 import pyretechnics.burn_cells as bc
+import matplotlib.pyplot as plt
 
+script_dir   = os.path.dirname(__file__)
+project_root = os.path.abspath(os.path.join(script_dir, os.pardir, os.pardir))
+sys.path.insert(0, project_root)
+from src.utils.loadingUtils import (
+    load_raster,
+    convert_to_cube,
+        )
+from src.utils.plottingUtils import (
+    save_matrix_as_heatmap,
+    save_matrix_as_contours,
+    )
+
+# Tunable parameters
+savename = "adjacency"
+time_steps = 24
+
+
+savedir = f"results/{savename}"
+os.makedirs(savedir, exist_ok = True)
 # Directory containing the already-cropped rasters
 raster_dir = "cropped_rasters"
-
-def load_raster(name, x_interval=None, y_interval=None):
-    """
-    Loads a cropped raster, optionally sub-windows it to x_interval/y_interval,
-    then flips it vertically to match simulation orientation.
-    
-    Parameters
-    ----------
-    name : str
-      Base name of the raster (without “_cropped.tif”).
-    x_interval : tuple of int (start, end), optional
-      Column indices to keep (0-based, [start:end]).
-    y_interval : tuple of int (start, end), optional
-      Row    indices to keep (0-based, [start:end]).
-      
-    Returns
-    -------
-    data : np.ndarray, float32, shape = (rows, cols)
-    """
-    path = os.path.join(raster_dir, f"{name}_cropped.tif")
-    with rasterio.open(path) as src:
-        data = src.read(1)  # full 2D array, shape (rows, cols)
-    
-    # apply subwindowing if requested
-    if y_interval is not None or x_interval is not None:
-        rows, cols = data.shape
-        y0, y1 = y_interval if y_interval is not None else (0, rows)
-        x0, x1 = x_interval if x_interval is not None else (0, cols)
-        data = data[y0:y1, x0:x1]
-    
-    # flip so row 0 becomes bottom
-    data = np.flip(data, axis=0)
-    return np.ascontiguousarray(data).astype(np.float32)
 
 # Load rasters (already cropped, no need to window)
 xsubset = (200,400)
@@ -47,42 +34,29 @@ ysubset = (100,300)
 slope = load_raster("slp", xsubset, ysubset)
 aspect = load_raster("asp", xsubset, ysubset)
 dem = load_raster("dem", xsubset, ysubset)
-canopy_cover = load_raster("cc", xsubset, ysubset) / 100
-canopy_bulk_density = load_raster("cbd", xsubset, ysubset)  / 100
-canopy_base_height = load_raster("cbh", xsubset, ysubset)
-canopy_height = load_raster("ch", xsubset, ysubset)
+cc = load_raster("cc", xsubset, ysubset) 
+cbd = load_raster("cbd", xsubset, ysubset) 
+cbh = load_raster("cbh", xsubset, ysubset)
+ch = load_raster("ch", xsubset, ysubset)
 fuel_model = load_raster("fbfm", xsubset, ysubset)
-#x,xfin,y,yfin = (100, 150, 100, 150)
-#canopy_cover[x:xfin, y:yfin] = 0
-#canopy_height[x:xfin, y:yfin] = 0
-#canopy_bulk_density[x:xfin, y:yfin] = 0
-#canopy_base_height[x:xfin, y:yfin] = 0
-#fuel_model[x:xfin, y:yfin] = 0
+
+#convert to cubes
+slope_cube = convert_to_cube(slope, time_steps)
+aspect_cube = convert_to_cube(aspect, time_steps)
+dem_cube   = convert_to_cube(dem, time_steps)
+cc_cube    = convert_to_cube(cc, time_steps)
+cbd_cube   = convert_to_cube(cbd, time_steps)
+cbh_cube   = convert_to_cube(cbh, time_steps)
+ch_cube    = convert_to_cube(ch, time_steps)
+fuel_model_cube    = convert_to_cube(fuel_model, time_steps)
 
 # Define cube shape (e.g. 24 hours)
-time_steps = 24
 rows, cols = slope.shape
 cube_shape = (time_steps, rows, cols)
 
-# Option A: np.repeat
-slope_cube = np.repeat(np.tan(np.pi/180*slope[np.newaxis, ...]), time_steps, axis=0)
-aspect_cube = np.repeat(aspect[np.newaxis, ...], time_steps, axis=0)
-dem_cube   = np.repeat(dem[np.newaxis, ...],   time_steps, axis=0)
-cc_cube    = np.repeat(canopy_cover[np.newaxis, ...],    time_steps, axis=0)/100
-cbd_cube   = np.repeat(canopy_bulk_density[np.newaxis, ...], time_steps, axis=0)/100
-cbh_cube   = np.repeat(canopy_base_height[np.newaxis, ...],   time_steps, axis=0)
-ch_cube    = np.repeat(canopy_height[np.newaxis, ...],        time_steps, axis=0)
-fuel_model_cube    = np.repeat(fuel_model[np.newaxis, ...],        time_steps, axis=0)/1000
-
-
-# Now all these *_cube arrays have shape (time_steps, rows, cols)
-print(slope_cube.shape, aspect_cube.shape, dem_cube.shape, cc_cube.shape)
-print("fuel min", fuel_model_cube.min())
-print(slope_cube.max(), slope_cube.min())
-
 # Sanity check prints
 print("cube_shape:", cube_shape)
-print("canopy_shape:", canopy_cover.shape)
+print("canopy_shape:", cc.shape)
 
 # Build space-time cubes
 space_time_cubes = {
@@ -211,7 +185,7 @@ def adjacency_list_to_matrix(edgelist, num_nodes):
 
 edgelist = build_edgelist_from_spread_rates(spread_rate_mean, x, y)
 edgelist_array = np.array(edgelist, dtype=np.float32)
-np.save("spread_edge_list.npy", edgelist_array)
+np.save(f"{savedir}/spread_edge_list.npy", edgelist_array)
 #adjacency_matrix = adjacency_list_to_matrix(edgelist, int(x*y))
 
 #============================================================================================
@@ -225,7 +199,7 @@ heatmap_configs = [
         "colors"  : "hot",
         "units"   : "m/min",
         "title"   : "Fireline Intensity Adjacency North",
-        "filename": "spread_rate_adjacency_north.png",
+        "filename": f"{savedir}/adjacency_north.png",
         "vmin"    : vmin,
         "vmax"    : vmax,
     },
@@ -234,7 +208,7 @@ heatmap_configs = [
         "colors"  : "hot",
         "units"   : "m/min",
         "title"   : "Fireline Intensity Adjacency East",
-        "filename": "spread_rate_adjacency_east.png",
+        "filename": f"{savedir}/adjacency_east.png",
         "vmin"    : vmin,
         "vmax"    : vmax,
     },
@@ -243,7 +217,7 @@ heatmap_configs = [
         "colors"  : "hot",
         "units"   : "m/min",
         "title"   : "Fireline Intensity Adjacency South",
-        "filename": "spread_rate_adjacency_south.png",
+        "filename": f"{savedir}/adjacency_south.png",
         "vmin"    : vmin,
         "vmax"    : vmax,
     },
@@ -252,7 +226,7 @@ heatmap_configs = [
         "colors"  : "hot",
         "units"   : "m/min",
         "title"   : "Fireline Intensity Adjacency West",
-        "filename": "spread_rate_adjacency_west.png",
+        "filename": f"{savedir}/adjacency_west.png",
         "vmin"    : vmin,
         "vmax"    : vmax,
     },

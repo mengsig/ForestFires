@@ -32,7 +32,7 @@ vmax = degree.max()
 if centrality == "domirank":
     lambN, _ = eigs(G, k = 1, which = "SR")
 
-    _, centralityDistribution = domirank(G, sigma = -0.99999/lambN, analytical = True) 
+    _, centralityDistribution = domirank(G, sigma = -0.90/lambN, analytical = True) 
     centralityDistribution = centralityDistribution.real
     basename = f"{savedir}/domirank"
 elif centrality == "random":
@@ -45,6 +45,7 @@ elif centrality == "bonacich":
     import scipy as sp
     lambN, _ = eigs(G, k = 1, which = "LR")
     centralityDistribution = sp.sparse.linalg.spsolve(0.5/lambN*G + sp.sparse.identity(G.shape[0]), np.ones(G.shape[0]))
+    centralityDistribution = centralityDistribution.real
     basename = f"{savedir}/bonacich"
 else:
     raise ValueError("That centrality is not supported.")

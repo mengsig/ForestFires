@@ -1,6 +1,16 @@
 import matplotlib.pyplot as plt
-def save_matrix_as_heatmap(matrix, colors, units, title, filename, vmin=None, vmax=None, ticks=None):
-    image    = plt.imshow(matrix, origin="lower", cmap=colors, vmin=vmin, vmax=vmax)
+from matplotlib.colors import LogNorm
+
+cmap = plt.get_cmap('hot')
+cmap.set_bad("purple")
+def save_matrix_as_heatmap(matrix, colors, units, title, filename, vmin=None, vmax=None, ticks=None, norm=False):
+    if colors == "hot":
+        if norm:
+            image    = plt.imshow(matrix, origin="lower", cmap=cmap, norm = LogNorm(vmin,vmax))
+        else:
+            image    = plt.imshow(matrix, origin="lower", cmap=cmap, vmin=vmin, vmax=vmax)
+    else:
+        image    = plt.imshow(matrix, origin="lower", cmap=colors, vmin=vmin, vmax=vmax)
     colorbar = plt.colorbar(image, orientation="vertical", ticks=ticks)
     colorbar.set_label(units)
     plt.title(title)

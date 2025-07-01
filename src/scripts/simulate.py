@@ -1,4 +1,3 @@
-#==============================================================import os
 import os
 import sys
 import numpy as np
@@ -8,6 +7,8 @@ import time
 import pprint
 import imageio
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
+
 
 script_dir   = os.path.dirname(__file__)
 project_root = os.path.abspath(os.path.join(script_dir, os.pardir, os.pardir))
@@ -20,20 +21,29 @@ from src.utils.plottingUtils import (
     save_matrix_as_heatmap,
     save_matrix_as_contours,
     )
+from src.utils.parsingUtils import (
+    parse_shape_savename_centrality,
+    )
 
 # Tunable parameters
-savename = "sim"
+xlen,ylen, savename, centrality = parse_shape_savename_centrality()
 time_steps = 1500
 
 
 savedir = f"results/{savename}"
+fuel_breaks_file = f"{savedir}/{centrality}_15.txt"
+#fuel_breaks_file = ""
+if fuel_breaks_file != "":
+    savedir = fuel_breaks_file.removesuffix(".txt")
 os.makedirs(savedir, exist_ok = True)
 # Directory containing the already-cropped rasters
 raster_dir = "cropped_rasters"
 
 # Load rasters (already cropped, no need to window)
-xsubset = (200,400)
-ysubset = (100,300)
+xoffset = 100
+yoffset = 100
+xsubset = (xoffset,int(xoffset + xlen))
+ysubset = (yoffset,int(yoffset + ylen))
 
 slope = load_raster("slp", xsubset, ysubset)
 aspect = load_raster("asp", xsubset, ysubset)
@@ -44,15 +54,33 @@ cbh = load_raster("cbh", xsubset, ysubset)
 ch = load_raster("ch", xsubset, ysubset)
 fuel_model = load_raster("fbfm", xsubset, ysubset)
 
+if fuel_breaks_file != "":
+    fuel_breaks = np.loadtxt(fuel_breaks_file).astype(bool)
+    fuel_model[fuel_breaks] = 0
+    cc[fuel_breaks] = 0
+    cbd[fuel_breaks] = 0
+    ch[fuel_breaks] = 0
+    cbh[fuel_breaks] = 0
+
 #convert to cubes
-slope_cube = convert_to_cube(slope, time_steps)
-aspect_cube = convert_to_cube(aspect, time_steps)
-dem_cube   = convert_to_cube(dem, time_steps)
-cc_cube    = convert_to_cube(cc, time_steps)
-cbd_cube   = convert_to_cube(cbd, time_steps)
-cbh_cube   = convert_to_cube(cbh, time_steps)
-ch_cube    = convert_to_cube(ch, time_steps)
-fuel_model_cube    = convert_to_cube(fuel_model, time_steps)
+slope_cube = convert_to_cube(slope, time_steps, datatype = "slp")
+aspect_cube = convert_to_cube(aspect, time_steps, datatype = "asp")
+dem_cube   = convert_to_cube(dem, time_steps, datatype = "dem")
+cc_cube    = convert_to_cube(cc, time_steps, datatype = "cc")
+cbd_cube   = convert_to_cube(cbd, time_steps, datatype = "cbd")
+cbh_cube   = convert_to_cube(cbh, time_steps, datatype = "cbh")
+ch_cube    = convert_to_cube(ch, time_steps, datatype = "ch")
+fuel_model_cube    = convert_to_cube(fuel_model, time_steps, datatype = "fbfm")
+
+print("slope_cube", slope_cube.min, slope_cube.max())
+print("aspect_cube", aspect_cube.min(), aspect_cube.max()) 
+print("dem_cube", dem_cube.min(), dem_cube.max())
+print("cc_cube", cc_cube.min(), cc_cube.max())
+print("cbd_cube", cbd_cube.min(), cbd_cube.max())
+print("cbh_cube", cbh_cube.min(), cbh_cube.max())
+print("ch_cube", ch_cube.min(), ch_cube.max())
+print("fuel_model_cube", fuel_model_cube.min(), fuel_model_cube.max())
+
 
 # Define cube shape (e.g. 24 hours)
 rows, cols = slope.shape
@@ -87,7 +115,7 @@ space_time_cubes = {
 start_time = (24 * 60) + (10 * 60) + 30 # minutes
 
 # 8 hours
-max_duration = int(time_steps*1/3) * 60 # minutes
+max_duration = int(time_steps*2/3) * 60 # minutes
 
 spread_state = els.SpreadState(cube_shape).ignite_cell((190,190))
 print(cube_shape)
@@ -181,14 +209,10 @@ pprint(get_array_stats(output_matrices["flame_length"]), sort_dicts=False)
 print("\nTime of Arrival (minutes)")
 pprint(get_array_stats(output_matrices["time_of_arrival"]), sort_dicts=False)
 
-
-
 import matplotlib.pyplot as plt
 import numpy as np
 
-
-
-
+output_matrices["fireline_intensity"] += 0.01
 # See https://matplotlib.org/stable/gallery/color/colormap_reference.html for the available options for "colors"
 heatmap_configs = [
     {
@@ -231,6 +255,9 @@ heatmap_configs = [
         "units"   : "kW/m",
         "title"   : "Fireline Intensity",
         "filename": f"{savedir}/els_fireline_intensity.png",
+        "vmin"    : output_matrices['fireline_intensity'].min(),
+        "vmax"    : output_matrices['fireline_intensity'].max(),
+        "norm"    : True
     },
     {
         "matrix"  : output_matrices["flame_length"],
@@ -238,6 +265,13 @@ heatmap_configs = [
         "units"   : "meters",
         "title"   : "Flame Length",
         "filename": f"{savedir}/els_flame_length.png",
+    },
+    {
+        "matrix"  : cc,
+        "colors"  : "Greens",
+        "units"   : "coverage",
+        "title"   : "canopy coverage",
+        "filename": f"{savedir}/els_canopy_coverage.png",
     },
 ]
 
@@ -261,7 +295,7 @@ for contour_config in contour_configs:
 
 # --- parameters for the GIF ---
 sample_interval = 200                # minutes between frames
-vmin, vmax = 0, np.log10(output_matrices["fireline_intensity"].max()+1)
+vmin, vmax = output_matrices["fireline_intensity"].min(), output_matrices["fireline_intensity"].max()
 out_dir     = f"{savedir}gif_frames"
 gif_name    = f"{savedir}/fireline_intensity.gif"
 duration    = 0.5                   # seconds per frame
@@ -286,7 +320,7 @@ for t in times:
 
     # plot
     fig, ax = plt.subplots(figsize=(6,6))
-    img = ax.imshow(np.log10(frame+1), origin="lower", cmap="hot", vmin=vmin, vmax=vmax)
+    img = ax.imshow(frame, origin="lower", cmap="hot", norm = LogNorm(vmin = vmin, vmax = vmax))
     ax.set_title(f"Fireline Intensity (kW/m)\nTime = {t} min")
     ax.axis("off")
     plt.colorbar(img, ax=ax, label="kW/m", fraction=0.046, pad=0.04)

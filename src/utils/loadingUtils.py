@@ -28,21 +28,27 @@ def load_raster(name, x_interval=None, y_interval=None, raster_dir = "cropped_ra
         rows, cols = data.shape
         y0, y1 = y_interval if y_interval is not None else (0, rows)
         x0, x1 = x_interval if x_interval is not None else (0, cols)
-        data = data[y0:y1, x0:x1]
-    
+        data = data[y0:y1, x0:x1]#
     # flip so row 0 becomes bottom
-    # TODO: figure out how to properly normalize renormalizing
-    if name == "cbd":
-        data = data/10.0
-    elif name == "cc":
-        data = data/100.0
-    elif name == "fbfm":
-        data = data/100.0
-    if name == "slp":
-        data = np.tan(np.pi/180 * data)
     data = np.flip(data, axis=0)
     return np.ascontiguousarray(data).astype(np.float32)
 
+    
 
-def convert_to_cube(data, time_steps):
+
+def convert_to_cube(data, time_steps, datatype = None):
+    # TODO: figure out how to properly normalize renormalizing
+    if datatype == "cbd":
+        data = data/100.0
+    elif datatype == "cc":
+        data = data/100.0
+    elif datatype == "fbfm":
+        data = data/1000.0
+    if datatype == "slp":
+        data = np.tan(np.pi/180 * data)
+    if datatype == "ch":
+        data = data/100.0
+    if datatype == "cbh":
+        data = data/100.0
+    data = np.flip(data, axis=0)
     return np.repeat(data[np.newaxis, ...], time_steps, axis=0)

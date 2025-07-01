@@ -14,22 +14,28 @@ from src.utils.loadingUtils import (
         )
 from src.utils.plottingUtils import (
     save_matrix_as_heatmap,
-    save_matrix_as_contours,
+    )
+from src.utils.parsingUtils import (
+    parse_shape_savename_centrality,
     )
 
 # Tunable parameters
-savename = "adjacency"
+
+xlen,ylen, savename, _ = parse_shape_savename_centrality()
 time_steps = 24
 
 
 savedir = f"results/{savename}"
+print(f"Saving to {savename}...")
 os.makedirs(savedir, exist_ok = True)
 # Directory containing the already-cropped rasters
 raster_dir = "cropped_rasters"
 
 # Load rasters (already cropped, no need to window)
-xsubset = (200,400)
-ysubset = (100,300)
+xoffset = 100
+yoffset = 100
+xsubset = (xoffset,int(xoffset + xlen))
+ysubset = (yoffset,int(yoffset + ylen))
 
 slope = load_raster("slp", xsubset, ysubset)
 aspect = load_raster("asp", xsubset, ysubset)
@@ -41,14 +47,14 @@ ch = load_raster("ch", xsubset, ysubset)
 fuel_model = load_raster("fbfm", xsubset, ysubset)
 
 #convert to cubes
-slope_cube = convert_to_cube(slope, time_steps)
-aspect_cube = convert_to_cube(aspect, time_steps)
-dem_cube   = convert_to_cube(dem, time_steps)
-cc_cube    = convert_to_cube(cc, time_steps)
-cbd_cube   = convert_to_cube(cbd, time_steps)
-cbh_cube   = convert_to_cube(cbh, time_steps)
-ch_cube    = convert_to_cube(ch, time_steps)
-fuel_model_cube    = convert_to_cube(fuel_model, time_steps)
+slope_cube = convert_to_cube(slope, time_steps, datatype = "slp")
+aspect_cube = convert_to_cube(aspect, time_steps, datatype = "asp")
+dem_cube   = convert_to_cube(dem, time_steps, datatype = "dem")
+cc_cube    = convert_to_cube(cc, time_steps, datatype = "cc")
+cbd_cube   = convert_to_cube(cbd, time_steps, datatype = "cbd")
+cbh_cube   = convert_to_cube(cbh, time_steps, datatype = "cbh")
+ch_cube    = convert_to_cube(ch, time_steps, datatype = "ch")
+fuel_model_cube    = convert_to_cube(fuel_model, time_steps, datatype = "fbfm")
 
 # Define cube shape (e.g. 24 hours)
 rows, cols = slope.shape
@@ -96,9 +102,9 @@ spread_azimuth = 0 # degrees clockwise from North on the horizontal plane
 for i in range(directions):
     num_simulations = 0
     for step in range(t):
-        if step % 24 != 0:
+        if step % 4 != 0:
             continue
-        print(step)
+        print(f"direction {i}/{directions}, step: {step}/{t}")
         num_simulations += 1
 #============================================================================================
 # Calculate combined fire behavior in the direction of the azimuth (with wind limit)
@@ -124,7 +130,7 @@ for i in range(directions):
                                                                        use_wind_limit=False,
                                                                        surface_lw_ratio_model="rothermel")
 
-        spread_rate_mean[i] += combined_behavior_limited["fireline_intensity"]
+        spread_rate_mean[i] += combined_behavior_unlimited["fireline_intensity"]
 
 #============================================================================================
 # Update spread azimuth angle
@@ -132,9 +138,6 @@ for i in range(directions):
     spread_rate_mean[i,::,::] /= num_simulations
     spread_azimuth += azimuth_step
 
-spread_rate_mean = np.log10(spread_rate_mean+1)
-vmin = spread_rate_mean.min()
-vmax = spread_rate_mean.max()
 
 def build_edgelist_from_spread_rates(spread_rate_mean, x, y):
     """
@@ -180,18 +183,22 @@ def adjacency_list_to_matrix(edgelist, num_nodes):
     """
     adj_matrix = np.zeros((num_nodes, num_nodes), dtype=np.float32)
     for from_node, to_node, weight in edgelist:
-        adj_matrix[from_node, to_node] = weight
+        adj_matrix[int(from_node), int(to_node)] = weight
     return adj_matrix
 
 edgelist = build_edgelist_from_spread_rates(spread_rate_mean, x, y)
 edgelist_array = np.array(edgelist, dtype=np.float32)
-np.save(f"{savedir}/spread_edge_list.npy", edgelist_array)
+np.savetxt(f"{savedir}/spread_edge_list.txt", edgelist_array)
 #adjacency_matrix = adjacency_list_to_matrix(edgelist, int(x*y))
 
 #============================================================================================
 # Display combined fire behavior in the direction of the azimuth (with wind limit)
 #============================================================================================
 
+spread_rate_mean = spread_rate_mean + 1
+vmin = spread_rate_mean.min()
+vmax = spread_rate_mean.max()
+print(vmin, vmax)
 
 heatmap_configs = [
     {
@@ -202,6 +209,7 @@ heatmap_configs = [
         "filename": f"{savedir}/adjacency_north.png",
         "vmin"    : vmin,
         "vmax"    : vmax,
+        "norm"    : True,
     },
     {
         "matrix"  : spread_rate_mean[1,::,::],
@@ -211,6 +219,7 @@ heatmap_configs = [
         "filename": f"{savedir}/adjacency_east.png",
         "vmin"    : vmin,
         "vmax"    : vmax,
+        "norm"    : True,
     },
     {
         "matrix"  : spread_rate_mean[2,::,::],
@@ -220,6 +229,7 @@ heatmap_configs = [
         "filename": f"{savedir}/adjacency_south.png",
         "vmin"    : vmin,
         "vmax"    : vmax,
+        "norm"    : True,
     },
     {
         "matrix"  : spread_rate_mean[3,::,::],
@@ -229,17 +239,9 @@ heatmap_configs = [
         "filename": f"{savedir}/adjacency_west.png",
         "vmin"    : vmin,
         "vmax"    : vmax,
+        "norm"    : True,
     },
 ]
-
-def save_matrix_as_heatmap(matrix, colors, units, title, filename, vmin=None, vmax=None, ticks=None):
-    import matplotlib.pyplot as plt
-    image    = plt.imshow(matrix, origin="lower", cmap=colors, vmin=vmin, vmax=vmax)
-    colorbar = plt.colorbar(image, orientation="vertical", ticks=ticks)
-    colorbar.set_label(units)
-    plt.title(title)
-    plt.savefig(filename)
-    plt.close("all")
 
 
 for heatmap_config in heatmap_configs:

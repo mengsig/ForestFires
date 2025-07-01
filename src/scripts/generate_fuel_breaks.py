@@ -32,7 +32,7 @@ vmax = degree.max()
 if centrality == "domirank":
     lambN, _ = eigs(G, k = 1, which = "SR")
 
-    _, centralityDistribution = domirank(G, sigma = -0.90/lambN, analytical = True) 
+    _, centralityDistribution = domirank(G, sigma = -0.99999/lambN, analytical = True) 
     centralityDistribution = centralityDistribution.real
     basename = f"{savedir}/domirank"
 elif centrality == "random":

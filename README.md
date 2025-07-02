@@ -19,4 +19,20 @@ python setup.py install
 cd ..
 ```
 
+# Running Simulations and Creating Fire Breaks
+The ```run.sh``` script creates an easy script that will run all of 
+the required files in the correct order, by passing consistent argument
+types. Moreover, it does this for a list of specified centralities.
+To change the size of the lanscape, please navigate to run.sh and change
+the variables ```XLEN``` and ```YLEN``` to your desired size. Thereafter,
+a savename should be given that will store all results in *src/results/<savename>*.
+Once this is done, simply run:
+
+```
+bash run.sh
+```
+
+And all information should be stored in the *src/results/<savename>/* folder.
+
+
 Enjoy ( :

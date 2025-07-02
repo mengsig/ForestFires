@@ -32,7 +32,7 @@ vmax = degree.max()
 if centrality == "domirank":
     lambN, _ = eigs(G, k = 1, which = "SR")
 
-    _, centralityDistribution = domirank(G, sigma = -0.99999/lambN, analytical = True) 
+    _, centralityDistribution = domirank(G, sigma = -0.999/lambN, analytical = True) 
     centralityDistribution = centralityDistribution.real
     basename = f"{savedir}/domirank"
 elif centrality == "random":
@@ -43,8 +43,10 @@ elif centrality == "degree":
     basename = f"{savedir}/degree"
 elif centrality == "bonacich":
     import scipy as sp
-    lambN, _ = eigs(G, k = 1, which = "LR")
-    centralityDistribution = sp.sparse.linalg.spsolve(0.5/lambN*G + sp.sparse.identity(G.shape[0]), np.ones(G.shape[0]))
+    lambN, _ = eigs(G, k = 1, which = "LM")
+    alpha = 0.5/lambN
+    M = sp.sparse.eye(G.shape[0]) - alpha*G
+    centralityDistribution = sp.sparse.linalg.spsolve(M, np.ones(G.shape[0]))
     centralityDistribution = centralityDistribution.real
     basename = f"{savedir}/bonacich"
 else:
@@ -56,4 +58,4 @@ reshapedDistribution += -reshapedDistribution.min()
 reshapedDistribution += 1
 
 intervals = [0,5,10,15,20]
-save_fuel_breaks(reshapedDistribution, plot_degree, basename, intervals)
+save_fuel_breaks(reshapedDistribution, plot_degree, basename, intervals, centrality)

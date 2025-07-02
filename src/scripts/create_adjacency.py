@@ -1,10 +1,12 @@
+#global imports
 import os
 import sys
 import numpy as np
+#pyretechnics import
 from pyretechnics.space_time_cube import SpaceTimeCube
 import pyretechnics.burn_cells as bc
-import matplotlib.pyplot as plt
 
+#src/utils/ imports
 script_dir   = os.path.dirname(__file__)
 project_root = os.path.abspath(os.path.join(script_dir, os.pardir, os.pardir))
 sys.path.insert(0, project_root)
@@ -18,20 +20,23 @@ from src.utils.plottingUtils import (
 from src.utils.parsingUtils import (
     parse_shape_savename_centrality,
     )
+from src.utils.networkUtils import (
+    build_edgelist_from_spread_rates,
+    )
 
-# Tunable parameters
-
+# -------------Tunable parameters------------- #
 xlen,ylen, savename, _ = parse_shape_savename_centrality()
 time_steps = 24
-
+# ----------end of tunable parameters----------#
 
 savedir = f"results/{savename}"
-print(f"Saving to {savename}...")
+print(f"[CREATE ADJACENCY]: Saving to {savename}...")
 os.makedirs(savedir, exist_ok = True)
-# Directory containing the already-cropped rasters
+
+#directory containing the already-cropped rasters
 raster_dir = "cropped_rasters"
 
-# Load rasters (already cropped, no need to window)
+#load rasters 
 xoffset = 100
 yoffset = 100
 xsubset = (xoffset,int(xoffset + xlen))
@@ -60,11 +65,7 @@ fuel_model_cube    = convert_to_cube(fuel_model, time_steps, datatype = "fbfm")
 rows, cols = slope.shape
 cube_shape = (time_steps, rows, cols)
 
-# Sanity check prints
-print("cube_shape:", cube_shape)
-print("canopy_shape:", cc.shape)
-
-# Build space-time cubes
+#build space-time cubes
 space_time_cubes = {
     "slope"                        : SpaceTimeCube(cube_shape, slope_cube),
     "aspect"                       : SpaceTimeCube(cube_shape, aspect_cube),
@@ -96,20 +97,19 @@ y_range = (0,y)
 x_range = (0,x)
 directions = 4 
 azimuth_step = 360/directions
-spread_rate_mean = np.zeros((4,y,x))
+spread_rate_mean = np.zeros((directions,y,x))
 spread_azimuth = 0 # degrees clockwise from North on the horizontal plane
 #orig_space_time_cubes = space_time_cubes.copy()
 for i in range(directions):
     num_simulations = 0
     for step in range(t):
-        if step % 4 != 0:
+        if step % directions != 0:
             continue
-        print(f"direction {i}/{directions}, step: {step}/{t}")
+        print(f"[CREATE ADJACENCY]: direction {i}/{directions}, step: {step}/{t}")
         num_simulations += 1
 #============================================================================================
 # Calculate combined fire behavior in the direction of the azimuth (with wind limit)
 #============================================================================================
-#        space_time_cubes = orig_space_time_cubes.copy()
 
         combined_behavior_limited = bc.burn_all_cells_toward_azimuth(space_time_cubes,
                                                                      spread_azimuth,
@@ -130,66 +130,22 @@ for i in range(directions):
                                                                        use_wind_limit=False,
                                                                        surface_lw_ratio_model="rothermel")
 
+#============================================================================================
+# TODO: do we use unlimited or limited?
+#============================================================================================
         spread_rate_mean[i] += combined_behavior_unlimited["fireline_intensity"]
 
 #============================================================================================
 # Update spread azimuth angle
 #============================================================================================
-    spread_rate_mean[i,::,::] /= num_simulations
     spread_azimuth += azimuth_step
 
-
-def build_edgelist_from_spread_rates(spread_rate_mean, x, y):
-    """
-    Constructs an adjacency list from directional spread rates.
-
-    Parameters:
-        spread_rate_mean (np.ndarray): shape (4, y, x), spread rates per direction.
-        x (int): width of the grid.
-        y (int): height of the grid.
-
-    Returns:
-        adjacency (list of tuples): (from_node, to_node, weight)
-    """
-    adjacency = []
-    directions = {
-        0: (0, -1),  # North
-        1: (1, 0),   # East
-        2: (0, 1),   # South
-        3: (-1, 0),  # West
-    }
-
-    for j in range(y):
-        for i in range(x):
-            from_node = j * x + i
-            for d, (dx, dy) in directions.items():
-                ni, nj = i + dx, j + dy
-                if 0 <= ni < x and 0 <= nj < y:
-                    to_node = nj * x + ni
-                    weight = spread_rate_mean[d, j, i]
-                    adjacency.append((from_node, to_node, weight))
-    return adjacency
-
-def adjacency_list_to_matrix(edgelist, num_nodes):
-    """
-    Converts an edge list into a dense NumPy adjacency matrix.
-
-    Parameters:
-        edgelist (list of tuples): (from_node, to_node, weight)
-        num_nodes (int): Total number of nodes in the graph.
-
-    Returns:
-        adj_matrix (np.ndarray): [num_nodes x num_nodes] weighted adjacency matrix.
-    """
-    adj_matrix = np.zeros((num_nodes, num_nodes), dtype=np.float32)
-    for from_node, to_node, weight in edgelist:
-        adj_matrix[int(from_node), int(to_node)] = weight
-    return adj_matrix
+    #normalize spread_rate_mean
+    spread_rate_mean[i,::,::] /= num_simulations
 
 edgelist = build_edgelist_from_spread_rates(spread_rate_mean, x, y)
 edgelist_array = np.array(edgelist, dtype=np.float32)
 np.savetxt(f"{savedir}/spread_edge_list.txt", edgelist_array)
-#adjacency_matrix = adjacency_list_to_matrix(edgelist, int(x*y))
 
 #============================================================================================
 # Display combined fire behavior in the direction of the azimuth (with wind limit)
@@ -198,14 +154,13 @@ np.savetxt(f"{savedir}/spread_edge_list.txt", edgelist_array)
 spread_rate_mean = spread_rate_mean + 1
 vmin = spread_rate_mean.min()
 vmax = spread_rate_mean.max()
-print(vmin, vmax)
 
 heatmap_configs = [
     {
         "matrix"  : spread_rate_mean[0,::,::],
         "colors"  : "hot",
         "units"   : "m/min",
-        "title"   : "Fireline Intensity Adjacency North",
+        "title"   : "Fireline Intensity North",
         "filename": f"{savedir}/adjacency_north.png",
         "vmin"    : vmin,
         "vmax"    : vmax,
@@ -215,7 +170,7 @@ heatmap_configs = [
         "matrix"  : spread_rate_mean[1,::,::],
         "colors"  : "hot",
         "units"   : "m/min",
-        "title"   : "Fireline Intensity Adjacency East",
+        "title"   : "Fireline Intensity East",
         "filename": f"{savedir}/adjacency_east.png",
         "vmin"    : vmin,
         "vmax"    : vmax,
@@ -225,7 +180,7 @@ heatmap_configs = [
         "matrix"  : spread_rate_mean[2,::,::],
         "colors"  : "hot",
         "units"   : "m/min",
-        "title"   : "Fireline Intensity Adjacency South",
+        "title"   : "Fireline Intensity South",
         "filename": f"{savedir}/adjacency_south.png",
         "vmin"    : vmin,
         "vmax"    : vmax,
@@ -235,7 +190,7 @@ heatmap_configs = [
         "matrix"  : spread_rate_mean[3,::,::],
         "colors"  : "hot",
         "units"   : "m/min",
-        "title"   : "Fireline Intensity Adjacency West",
+        "title"   : "Fireline Intensity West",
         "filename": f"{savedir}/adjacency_west.png",
         "vmin"    : vmin,
         "vmax"    : vmax,
@@ -244,7 +199,6 @@ heatmap_configs = [
 ]
 
 
+#saving north/west/south/east heatmaps
 for heatmap_config in heatmap_configs:
     save_matrix_as_heatmap(**heatmap_config)
-
-print((spread_rate_mean[0] == spread_rate_mean[1]).sum()/(x*y))

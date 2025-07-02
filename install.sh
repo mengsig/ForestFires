@@ -7,8 +7,8 @@ if [ ! -x "$0" ]; then
 fi
 
 echo "Installing necessary python and python-virtualenv..."
-#sudo pacman -S --needed base-devel
-#yay -S python310
+sudo pacman -S --needed base-devel
+yay -S python310
 echo "Installed python3 and python-virtualenv."
 
 if ! command -v python3.10 &>/dev/null; then
@@ -49,11 +49,13 @@ else
 fi
 
 echo "[DomiRank]: Installing DomiRank library and dependencies..."
-pip install -e .
+git clone git@github.com:mengsig/DomiRank.git
+pip install -e DomiRank/.
 echo "[DomiRank]: Finished installing DomiRank library and dependencies!"
 
 echo "[Pyregenics]: Installing Pyregenics library and dependencies..."
-cd pyregenics
+git clone git@github.com:pyregence/pyretechnics.git
+cd pyretechnics
 python setup.py install
 cd ..
 echo "[Pyregenics]: Finished installing pyregenics library and dependencies!"
@@ -75,5 +77,3 @@ fi
 
 echo "To activate the virtual environment at any time, run the command:
     source env.sh"
-
-

@@ -3,7 +3,7 @@
 If you are using **arch** linux, you can install directly via the command:
 
 ```
-bash archInstall.sh
+bash install.sh
 ```
 
 Otherwise, on any **OS** you can install by first ensuring that you are using

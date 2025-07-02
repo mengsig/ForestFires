@@ -10,6 +10,8 @@ Otherwise, on any **OS** you can install by first ensuring that you are using
 python version **~Python3.10**. Thereafter, execute the following commands:
 
 ```
+git clone git@github.com:pyregence/pyretechnics.git
+git clone git@github.com:mengsig/DomiRank.git
 python -m venv forestfires
 source forestfires/bin/activate
 pip install -e DomiRank/.

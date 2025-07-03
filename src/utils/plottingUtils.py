@@ -3,20 +3,50 @@ from matplotlib.colors import LogNorm
 
 cmap = plt.get_cmap('hot')
 cmap.set_bad("purple")
-def save_matrix_as_heatmap(matrix, colors, units, title, filename, vmin=None, vmax=None, ticks=None, norm=False):
+def save_matrix_as_heatmap(
+        matrix, colors, units, title, filename,
+        vmin=None, vmax=None, ticks=None, norm=False):
+    import numpy as np
+    # mask out invalid entries so that cmap.set_bad() actually catches them
+    mtx = np.ma.masked_invalid(matrix)
+
+    fig, ax = plt.subplots()
     if colors == "hot":
         if norm:
-            image    = plt.imshow(matrix, origin="lower", cmap=cmap, norm = LogNorm(vmin,vmax))
+            im = ax.imshow(
+                mtx,
+                origin="lower",
+                cmap=cmap,
+                norm=LogNorm(vmin=vmin, vmax=vmax),
+                interpolation='nearest',   # <— no smoothing
+                aspect='equal'            # <— square cells
+            )
         else:
-            image    = plt.imshow(matrix, origin="lower", cmap=cmap, vmin=vmin, vmax=vmax)
+            im = ax.imshow(
+                mtx,
+                origin="lower",
+                cmap=cmap,
+                vmin=vmin, vmax=vmax,
+                interpolation='nearest',
+                aspect='equal'
+            )
     else:
-        image    = plt.imshow(matrix, origin="lower", cmap=colors, vmin=vmin, vmax=vmax)
-    colorbar = plt.colorbar(image, orientation="vertical", ticks=ticks)
-    colorbar.set_label(units)
-    plt.title(title)
-    plt.savefig(filename)
-    plt.close("all")
+        im = ax.imshow(
+            mtx,
+            origin="lower",
+            cmap=colors,
+            vmin=vmin, vmax=vmax,
+            interpolation='nearest',
+            aspect='equal'
+        )
 
+    cbar = plt.colorbar(im, orientation="vertical", ticks=ticks)
+    cbar.set_label(units)
+    ax.set_title(title)
+    ax.axis("off")
+
+    plt.savefig(filename, bbox_inches='tight', dpi=300)
+    plt.close(fig)
 
 
 def save_matrix_as_contours(
@@ -39,6 +69,7 @@ def save_matrix_as_contours(
     data = mat.compressed()
 
     # 2) auto‐compute levels if needed
+    levels = 10
     if levels is None:
         if data.size == 0:
             # no data → a single zero‐level

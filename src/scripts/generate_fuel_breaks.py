@@ -32,7 +32,11 @@ vmax = degree.max()
 if centrality == "domirank":
     lambN, _ = eigs(G, k = 1, which = "SR")
 
-    _, centralityDistribution = domirank(G, sigma = -0.999/lambN, analytical = True) 
+    sigma = 0.9999999
+    sigma = 1-1/(G.shape[0])
+
+    print(f"[GENERATING-FUEL-BREAKS-{centrality}:] using sigma {sigma}...")
+    _, centralityDistribution = domirank(G, sigma = -sigma/lambN, analytical = True) 
     centralityDistribution = centralityDistribution.real
     basename = f"{savedir}/domirank"
 elif centrality == "random":
@@ -54,8 +58,8 @@ else:
 
 reshapedDistribution = np.reshape(centralityDistribution, (xlen, ylen))
 #renormalization for plotting
-reshapedDistribution += -reshapedDistribution.min()
-reshapedDistribution += 1
+#reshapedDistribution += -reshapedDistribution.min()
+#reshapedDistribution += 1.001
 
 intervals = [0,5,10,15,20]
 save_fuel_breaks(reshapedDistribution, plot_degree, basename, intervals, centrality)

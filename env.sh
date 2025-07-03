@@ -15,4 +15,8 @@ fi
 echo "Activating virtual environment '$FILENAME_ENV'."
 source $FILENAME_ENV/bin/activate
 
-
+echo "Uncapping number of allowed threads..."
+export OMP_NUM_THREADS=$(nproc)
+export MKL_NUM_THREADS=$(nproc)
+export OPENBLAS_NUM_THREADS=$(nproc)
+echo "Finished uncapping number of allowed threads..."

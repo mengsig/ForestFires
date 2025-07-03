@@ -28,7 +28,7 @@ def save_fuel_breaks(data, plot_degreec, basename, intervals, centrality):
         plot_degree[fuel_breaks] = np.inf
         try:
             np.savetxt(f"{basename}_{cutoff}.txt", fuel_breaks)
-            print(f"[GENERATING FUEL BREAKS-{centrality}]: Saved file: {basename}_{cutoff}.txt")
+            print(f"[GENERATING-FUEL-BREAKS-{centrality}:]: Saved file: {basename}_{cutoff}.txt")
 
             domirankConfig = {
                     "matrix"  : plot_degree,

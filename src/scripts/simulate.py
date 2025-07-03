@@ -86,8 +86,8 @@ space_time_cubes = {
     "canopy_height"                : SpaceTimeCube(cube_shape, ch_cube),
     "canopy_base_height"           : SpaceTimeCube(cube_shape, cbh_cube),
     "canopy_bulk_density"          : SpaceTimeCube(cube_shape, cbd_cube),
-    "wind_speed_10m"               : SpaceTimeCube(cube_shape, 30),
-    "upwind_direction"             : SpaceTimeCube(cube_shape, 45),
+    "wind_speed_10m"               : SpaceTimeCube(cube_shape, 0),
+    "upwind_direction"             : SpaceTimeCube(cube_shape, 0),
     "fuel_moisture_dead_1hr"       : SpaceTimeCube(cube_shape, 0.10),
     "fuel_moisture_dead_10hr"      : SpaceTimeCube(cube_shape, 0.25),
     "fuel_moisture_dead_100hr"     : SpaceTimeCube(cube_shape, 0.50),
@@ -183,6 +183,10 @@ with open(out_path, "w") as fout, redirect_stdout(fout):
 
     print("Stop Time: " + str(stop_time) + " (minutes)")
     print("Stop Condition: " + stop_condition)
+    print(f"Acres Burned: " + str(acres_burned))
+    print(f"Total Runtime: " + str(simulation_runtime) + " seconds")
+    print(f"Runtime Per Burned Cell: " + str(runtime_per_burned_cell) + " ms/cell")
+
 
     print("\nPhi (phi <= 0: burned, phi > 0: unburned")
     pprint(get_array_stats(output_matrices["phi"], use_burn_scar_mask=False), sort_dicts=False)
@@ -264,31 +268,33 @@ heatmap_configs = [
         "filename": f"{savedir}/els_flame_length.png",
     },
     {
-        "matrix"  : cc,
+            "matrix"  : np.flip(cc_cube[0,:,:],axis=0),
         "colors"  : "Greens",
         "units"   : "coverage",
         "title"   : "canopy coverage",
         "filename": f"{savedir}/els_canopy_coverage.png",
     },
-]
-
-
-contour_configs = [
     {
         "matrix"  : output_matrices["time_of_arrival"],
+        "colors"  : "viridis",
+        "units"   : "minutes",
+        "vmin"    : 1,
+        "vmax"    : stop_time,
         "title"   : "Time of Arrival",
         "filename": f"{savedir}/els_time_of_arrival.png",
-        "levels"  : int(start_time) + np.asarray(range(0, int(max_duration) + 1, 60)),
     },
 ]
+
+
+#contour_configs = []
 
 
 for heatmap_config in heatmap_configs:
     save_matrix_as_heatmap(**heatmap_config)
 
 
-for contour_config in contour_configs:
-    save_matrix_as_contours(**contour_config)
+#for contour_config in contour_configs:
+#    save_matrix_as_contours(**contour_config)
 
 
 import imageio
@@ -297,7 +303,7 @@ from matplotlib.colors import LogNorm
 
 # --- parameters for the GIF ---
 sample_interval = 200                # minutes between frames
-vmin, vmax = output_matrices["fireline_intensity"].min(), output_matrices["fireline_intensity"].max()
+vmin, vmax = output_matrices["fireline_intensity"].min() + 1, output_matrices["fireline_intensity"].max()
 out_dir     = f"{savedir}gif_frames"
 gif_name    = f"{savedir}/fireline_intensity.gif"
 duration    = 0.5                   # seconds per frame
@@ -314,26 +320,45 @@ toa = output_matrices["time_of_arrival"]      # minutes since ignition
 times = np.arange(0, int(stop_time) + 1, sample_interval)
 
 frames = []
-counter = 0
+cc = np.flip(cc_cube[0,:,:], axis = 0)
 for t in times:
-    counter += 1
-    if counter % 5 == 0:
-        print(f"[SIMULATE-{centrality}]: {t}/{times[-1]}")
-    # mask to only show cells that have ignited by time t
-    mask  = (toa > 0) & (toa <= t)
-    frame = np.where(mask, fi, 0.0)
+    mask = (toa > 0) & (toa <= t)
 
-    fig, ax = plt.subplots(figsize=(6,6))
-    img = ax.imshow(frame, origin="lower", cmap="hot", norm = LogNorm(vmin = vmin, vmax = vmax))
-    ax.set_title(f"Fireline Intensity (kW/m)\nTime = {t} min")
+    # fire in hot:
+    fire_frame = np.where(mask, fi, np.nan)
+
+    # static canopy (2D)
+    canopy_frame = np.where(~mask, cc, np.nan)
+
+    fig, ax = plt.subplots()
+    ax.imshow(canopy_frame,
+              origin="lower",
+              cmap="Greens",
+              vmin=0,
+              vmax=1,
+              interpolation = "nearest",
+              aspect = "equal")
+    # 2) draw fire and capture the mappable
+    im = ax.imshow(fire_frame,
+                   origin="lower",
+                   cmap="hot",
+                   norm=LogNorm(vmin=vmin, vmax=vmax),
+                   alpha=0.7, 
+                   interpolation = "nearest",
+                   aspect = "equal")
+
+    ax.set_title(f"t = {t} min")
     ax.axis("off")
-    plt.colorbar(img, ax=ax, label="kW/m", fraction=0.046, pad=0.04)
 
-    #save frame
+    # 3) only fire colorbar
+    cbar = fig.colorbar(im, ax=ax,
+                        fraction=0.046, pad=0.04,
+                        label="Fireline Intensity (kW/m)")
+
+    # save frame
     fname = os.path.join(out_dir, f"frame_{t:04d}.png")
     fig.savefig(fname, bbox_inches="tight", pad_inches=0.1)
     plt.close(fig)
-
     frames.append(imageio.v2.imread(fname))
 
 import shutil

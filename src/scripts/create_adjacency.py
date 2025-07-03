@@ -30,7 +30,7 @@ time_steps = 24
 # ----------end of tunable parameters----------#
 
 savedir = f"results/{savename}"
-print(f"[CREATE ADJACENCY]: Saving to {savename}...")
+print(f"[CREATE-ADJACENCY]: Saving to {savename}...")
 os.makedirs(savedir, exist_ok = True)
 
 #directory containing the already-cropped rasters
@@ -74,8 +74,8 @@ space_time_cubes = {
     "canopy_height"                : SpaceTimeCube(cube_shape, ch_cube),
     "canopy_base_height"           : SpaceTimeCube(cube_shape, cbh_cube),
     "canopy_bulk_density"          : SpaceTimeCube(cube_shape, cbd_cube),
-    "wind_speed_10m"               : SpaceTimeCube(cube_shape, 10),
-    "upwind_direction"             : SpaceTimeCube(cube_shape, 45),
+    "wind_speed_10m"               : SpaceTimeCube(cube_shape, 0),
+    "upwind_direction"             : SpaceTimeCube(cube_shape, 0),
     "fuel_moisture_dead_1hr"       : SpaceTimeCube(cube_shape, 0.10),
     "fuel_moisture_dead_10hr"      : SpaceTimeCube(cube_shape, 0.25),
     "fuel_moisture_dead_100hr"     : SpaceTimeCube(cube_shape, 0.50),
@@ -105,7 +105,7 @@ for i in range(directions):
     for step in range(t):
         if step % directions != 0:
             continue
-        print(f"[CREATE ADJACENCY]: direction {i}/{directions}, step: {step}/{t}")
+        print(f"[CREATE-ADJACENCY]: direction {i}/{directions}, step: {step}/{t}")
         num_simulations += 1
 #============================================================================================
 # Calculate combined fire behavior in the direction of the azimuth (with wind limit)

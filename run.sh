@@ -1,10 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
-XLEN=300
-YLEN=300
-SAVENAME="300_4neighbors"
-source env.sh
+XLEN=200
+YLEN=200
+SAVENAME="200_4neighbors"
+#source env.sh
 python src/scripts/create_adjacency.py "${XLEN}x${YLEN}" "$SAVENAME"
 
 CENTRALITIES=(domirank random degree bonacich)
@@ -13,10 +13,8 @@ for c in "${CENTRALITIES[@]}"; do
   (
     echo "=== Computing Fuel-Breaks for $c ==="
     python src/scripts/generate_fuel_breaks.py "${XLEN}x${YLEN}" "${SAVENAME}" "$c"
-  ) &   # <–– running subshell in background
+  )     # <–– running serially 
 done
-
-wait    # <–– hold until all background jobs finish
 
 echo "Computed Fuel-Breaks for all centralities!"
 

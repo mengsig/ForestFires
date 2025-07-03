@@ -43,7 +43,7 @@ def convert_to_cube(data, time_steps, datatype = None):
     elif datatype == "cc":
         data = data/100.0
     elif datatype == "fbfm":
-        data = data/1000.0
+        data = data/1.0
     if datatype == "slp":
         data = np.tan(np.pi/180 * data)
     if datatype == "ch":

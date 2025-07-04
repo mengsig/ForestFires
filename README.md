@@ -37,4 +37,12 @@ bash run.sh
 And all information should be stored in the *src/results/<savename>/* folder.
 
 
+# Full Simulations with increasing Fuel-Breaks and plotting (work in progress)
+Simply run:
+
+```
+bash fullrun.sh
+```
+
+
 Enjoy ( :

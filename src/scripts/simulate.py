@@ -1,6 +1,7 @@
 #global imports
 import os
 import sys
+import shutil
 import numpy as np
 from  pprint import pprint
 #pyretechnics imports
@@ -21,17 +22,20 @@ from src.utils.plottingUtils import (
     save_matrix_as_contours,
     )
 from src.utils.parsingUtils import (
-    parse_shape_savename_centrality,
+    parse_args,
     )
 
 # -------------Tunable parameters------------- #
-xlen,ylen, savename, centrality = parse_shape_savename_centrality()
+xlen,ylen, savename, centrality, fuel_break_fraction = parse_args()
 time_steps = int(1500 * np.sqrt(xlen*ylen)/(400))
 # ----------end of tunable parameters----------#
 
 
 savedir = f"results/{savename}"
-fuel_breaks_file = f"{savedir}/{centrality}_15.txt"
+fuel_breaks_file = f"{savedir}/{centrality}_{fuel_break_fraction}.txt"
+fuel_breaks_img = f"{savedir}/{centrality}_{fuel_break_fraction}.png"
+# copy the file into that directory (keeps the same basename)
+
 #fuel_breaks_file = ""
 if fuel_breaks_file != "":
     savedir = fuel_breaks_file.removesuffix(".txt")
@@ -62,6 +66,11 @@ if fuel_breaks_file != "":
     cbd[fuel_breaks] = 0
 #    ch[fuel_breaks] = 0
 #    cbh[fuel_breaks] = 0
+
+rel_img_name = fuel_breaks_img.split("/")[-1]
+#clean repo
+shutil.move(fuel_breaks_img, savedir + f"/{rel_img_name}")
+os.remove(fuel_breaks_file)
 
 #convert to cubes
 slope_cube = convert_to_cube(slope, time_steps, datatype = "slp")
@@ -107,7 +116,7 @@ max_duration = int(time_steps*2/3) * 60 # minutes
 #ignite in the middle 
 xcord, ycord = int(xlen/2), int(ylen/2)
 num_burned_cells = 0
-burned_cells_threshold = (xlen*ylen)/100
+burned_cells_threshold = (xlen*ylen)/np.sqrt(xlen*ylen)
 while num_burned_cells < burned_cells_threshold:
     xcord += np.random.choice([-1,1])
     ycord += np.random.choice([-1,1])
@@ -176,6 +185,7 @@ def get_array_stats(array, use_burn_scar_mask=True):
 
 
 #----------------- Saving statistics -----------------
+vmin, vmax = output_matrices["fireline_intensity"].min() + 1, output_matrices["fireline_intensity"].max()
 from contextlib import redirect_stdout
 out_path = f"{savedir}/stats.txt"
 with open(out_path, "w") as fout, redirect_stdout(fout):
@@ -185,7 +195,7 @@ with open(out_path, "w") as fout, redirect_stdout(fout):
     print("Stop Condition: " + stop_condition)
     print(f"Acres Burned: " + str(acres_burned))
     print(f"Total Runtime: " + str(simulation_runtime) + " seconds")
-    print(f"Runtime Per Burned Cell: " + str(runtime_per_burned_cell) + " ms/cell")
+    print(f" Runtime Per Burned Cell: " + str(runtime_per_burned_cell) + " ms/cell")
 
 
     print("\nPhi (phi <= 0: burned, phi > 0: unburned")
@@ -285,6 +295,13 @@ heatmap_configs = [
     },
 ]
 
+output_matrices["phi"][0:xlen, 0:ylen][fuel_breaks] = np.nan
+output_matrices["fire_type"][0:xlen, 0:ylen][fuel_breaks] = 0
+output_matrices["spread_rate"][0:xlen, 0:ylen][fuel_breaks] = np.nan
+output_matrices["spread_direction"][0:xlen, 0:ylen][fuel_breaks] = np.nan
+output_matrices["fireline_intensity"][0:xlen, 0:ylen][fuel_breaks] = np.inf
+output_matrices["flame_length"][0:xlen, 0:ylen][fuel_breaks] = np.nan
+output_matrices["time_of_arrival"][0:xlen, 0:ylen][fuel_breaks] = np.nan
 
 #contour_configs = []
 
@@ -303,7 +320,6 @@ from matplotlib.colors import LogNorm
 
 # --- parameters for the GIF ---
 sample_interval = 200                # minutes between frames
-vmin, vmax = output_matrices["fireline_intensity"].min() + 1, output_matrices["fireline_intensity"].max()
 out_dir     = f"{savedir}gif_frames"
 gif_name    = f"{savedir}/fireline_intensity.gif"
 duration    = 0.5                   # seconds per frame
@@ -321,19 +337,31 @@ times = np.arange(0, int(stop_time) + 1, sample_interval)
 
 frames = []
 cc = np.flip(cc_cube[0,:,:], axis = 0)
+cc[fuel_breaks] = np.inf
+cmap = plt.get_cmap('hot')
+cmap.set_bad("purple")
+cmap.set_under(alpha=0)
+
+cmap_green = plt.get_cmap("Greens")
+cmap_green.set_bad("purple")
+cmap_green.set_under(alpha=0)
+norm = LogNorm(vmin=vmin, vmax=vmax, clip=True)
 for t in times:
     mask = (toa > 0) & (toa <= t)
 
     # fire in hot:
-    fire_frame = np.where(mask, fi, np.nan)
+    fire_frame = np.where(mask, fi, -10)
+    if fire_frame.max() < 1:
+        fire_frame += 1-fire_frame.max()
 
     # static canopy (2D)
-    canopy_frame = np.where(~mask, cc, np.nan)
+    canopy_frame = np.where(~mask, cc, -10)
+    canopy_frame[fuel_breaks] = np.inf
 
     fig, ax = plt.subplots()
     ax.imshow(canopy_frame,
               origin="lower",
-              cmap="Greens",
+              cmap=cmap_green,
               vmin=0,
               vmax=1,
               interpolation = "nearest",
@@ -341,12 +369,11 @@ for t in times:
     # 2) draw fire and capture the mappable
     im = ax.imshow(fire_frame,
                    origin="lower",
-                   cmap="hot",
-                   norm=LogNorm(vmin=vmin, vmax=vmax),
-                   alpha=0.7, 
-                   interpolation = "nearest",
-                   aspect = "equal")
-
+                   cmap=cmap,
+                   norm=norm,          # reuse the sane LogNorm
+                   alpha=0.6,
+                   interpolation="nearest",
+                   aspect="equal")
     ax.set_title(f"t = {t} min")
     ax.axis("off")
 

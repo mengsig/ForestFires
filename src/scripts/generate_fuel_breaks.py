@@ -11,10 +11,10 @@ from src.utils.networkUtils import (
     save_fuel_breaks,
         )
 from src.utils.parsingUtils import (
-    parse_shape_savename_centrality,
+    parse_args,
     )
 
-xlen,ylen, savename, centrality = parse_shape_savename_centrality()
+xlen,ylen, savename, centrality, _ = parse_args()
 savedir = f"results/{savename}"
 
 G = create_network(f"results/{savename}/spread_edge_list.txt", sparse_array = True)
@@ -61,5 +61,5 @@ reshapedDistribution = np.reshape(centralityDistribution, (xlen, ylen))
 #reshapedDistribution += -reshapedDistribution.min()
 #reshapedDistribution += 1.001
 
-intervals = [0,5,10,15,20]
+intervals = [0,5,10,15,20,25,30]
 save_fuel_breaks(reshapedDistribution, plot_degree, basename, intervals, centrality)

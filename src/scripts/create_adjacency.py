@@ -18,14 +18,14 @@ from src.utils.plottingUtils import (
     save_matrix_as_heatmap,
     )
 from src.utils.parsingUtils import (
-    parse_shape_savename_centrality,
+    parse_args,
     )
 from src.utils.networkUtils import (
     build_edgelist_from_spread_rates,
     )
 
 # -------------Tunable parameters------------- #
-xlen,ylen, savename, _ = parse_shape_savename_centrality()
+xlen,ylen, savename, _, _ = parse_args()
 time_steps = 24
 # ----------end of tunable parameters----------#
 

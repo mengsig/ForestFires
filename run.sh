@@ -1,10 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-XLEN=200
-YLEN=200
-SAVENAME="200_4neighbors"
-#source env.sh
+XLEN=250
+YLEN=250
+SAVENAME="250_4neighbors"
+FUEL_BREAK_FRACTION=15
+source env.sh
 python src/scripts/create_adjacency.py "${XLEN}x${YLEN}" "$SAVENAME"
 
 CENTRALITIES=(domirank random degree bonacich)
@@ -22,7 +23,7 @@ echo "Simulating fire-spreading for all centralities..."
 for c in "${CENTRALITIES[@]}"; do
   (
     echo "=== Simulating fire-spreading for $c ==="
-    python src/scripts/simulate.py "${XLEN}x${YLEN}" "${SAVENAME}" "$c"
+    python src/scripts/simulate.py "${XLEN}x${YLEN}" "${SAVENAME}" "$c" "$FUEL_BREAK_FRACTION"
   ) &   # <–– running subshell in background
 done
 

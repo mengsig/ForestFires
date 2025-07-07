@@ -117,6 +117,11 @@ max_duration = int(time_steps*2/3) * 60 # minutes
 xcord, ycord = int(xlen/2), int(ylen/2)
 num_burned_cells = 0
 burned_cells_threshold = (xlen*ylen)/np.sqrt(xlen*ylen)
+
+acres_burned = 0
+simulation_runtime = 0
+runtime_per_burned_cell = 0
+
 while num_burned_cells < burned_cells_threshold:
     xcord += np.random.choice([-1,1])
     ycord += np.random.choice([-1,1])
@@ -135,10 +140,9 @@ while num_burned_cells < burned_cells_threshold:
     fire_spread_results = els.spread_fire_with_phi_field(space_time_cubes,
                                                          spread_state,
                                                          cube_resolution,
-                                                         start_time,
                                                          max_duration,
                                                          surface_lw_ratio_model="rothermel")
-    runtime_stop        = time.perf_counter()
+    runtime_stop        = time.perf_counter();
     stop_time           = fire_spread_results["stop_time"]      # minutes
     stop_condition      = fire_spread_results["stop_condition"] # "max duration reached" or "no burnable cells"
     spread_state        = fire_spread_results["spread_state"]   # updated SpreadState object (mutated from inputs)

@@ -60,7 +60,7 @@ fuel_model = load_raster("fbfm", xsubset, ysubset)
 # implementing fuel-breaks
 if fuel_breaks_file != "":
     fuel_breaks = np.loadtxt(fuel_breaks_file).astype(bool)
-    fuel_model[fuel_breaks] = 0
+    fuel_model[fuel_breaks] = 91
     cc[fuel_breaks] = 0
     cbd[fuel_breaks] = 0
 #    ch[fuel_breaks] = 0
@@ -139,6 +139,7 @@ while num_burned_cells < burned_cells_threshold:
     fire_spread_results = els.spread_fire_with_phi_field(space_time_cubes,
                                                          spread_state,
                                                          cube_resolution,
+                                                         start_time,
                                                          max_duration,
                                                          surface_lw_ratio_model="rothermel")
     runtime_stop        = time.perf_counter();

@@ -4,7 +4,7 @@ source env.sh
 
 num_cores=$(nproc)
 if (( num_cores > 1 )); then
-  max_jobs=$(( num_cores - 1 ))
+  max_jobs=$(( num_cores - 8 ))
 else
   max_jobs=1
 fi
@@ -18,9 +18,9 @@ throttle() {
   done
 }
 
-XLEN=50
-YLEN=50
-SAVENAME="full_50_4neighbors"
+XLEN=150
+YLEN=150
+SAVENAME="full_150_4neighbors"
 #source env.sh
 python src/scripts/create_adjacency.py "${XLEN}x${YLEN}" "$SAVENAME"
 

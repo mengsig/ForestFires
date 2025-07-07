@@ -19,7 +19,6 @@ from src.utils.loadingUtils import (
         )
 from src.utils.plottingUtils import (
     save_matrix_as_heatmap,
-    save_matrix_as_contours,
     )
 from src.utils.parsingUtils import (
     parse_args,

@@ -1,9 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-XLEN=250
-YLEN=250
-SAVENAME="250_4neighbors"
+XLEN=100
+YLEN=100
+SAVENAME="100_4neighbors"
 FUEL_BREAK_FRACTION=15
 source env.sh
 python src/scripts/create_adjacency.py "${XLEN}x${YLEN}" "$SAVENAME"

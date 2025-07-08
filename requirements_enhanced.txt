@@ -1,0 +1,149 @@
+# Enhanced Fire Simulation Dependencies
+# This file contains all Python dependencies with version constraints
+# for optimal performance and compatibility
+
+# =============================================================================
+# CORE RUNTIME DEPENDENCIES
+# =============================================================================
+
+# Numerical computing
+numpy>=1.21.0,<2.0.0
+scipy>=1.7.0,<2.0.0
+
+# Raster data processing
+rasterio>=1.3.0,<2.0.0
+GDAL>=3.3.0,<4.0.0
+
+# Data structures and algorithms
+sortedcontainers>=2.4.0,<3.0.0
+
+# Compilation and optimization
+Cython>=3.0.0,<4.0.0
+
+# =============================================================================
+# VISUALIZATION AND PLOTTING
+# =============================================================================
+
+# Core plotting library
+matplotlib>=3.5.0,<4.0.0
+
+# Enhanced plotting capabilities
+seaborn>=0.11.0,<1.0.0
+
+# Image processing and animation
+imageio>=2.19.0,<3.0.0
+imageio-ffmpeg>=0.4.7,<1.0.0  # For video generation
+
+# Interactive plotting (optional)
+plotly>=5.0.0,<6.0.0
+
+# =============================================================================
+# PARALLEL PROCESSING AND PERFORMANCE
+# =============================================================================
+
+# Distributed computing
+dask[distributed]>=2023.1.0,<2025.0.0
+
+# Parallel processing utilities
+joblib>=1.2.0,<2.0.0
+
+# Memory profiling and optimization
+psutil>=5.8.0,<6.0.0
+memory-profiler>=0.60.0,<1.0.0
+
+# =============================================================================
+# DEVELOPMENT AND TESTING
+# =============================================================================
+
+# Build and packaging
+setuptools>=65.0.0,<70.0.0
+wheel>=0.38.0,<1.0.0
+build>=0.8.0,<1.0.0
+
+# Testing framework
+pytest>=7.0.0,<8.0.0
+pytest-cov>=4.0.0,<5.0.0
+pytest-xdist>=2.5.0,<4.0.0  # Parallel test execution
+
+# Code quality
+black>=22.0.0,<24.0.0
+isort>=5.10.0,<6.0.0
+flake8>=5.0.0,<7.0.0
+mypy>=1.0.0,<2.0.0
+
+# Performance profiling
+snakeviz>=2.1.0,<3.0.0
+line-profiler>=4.0.0,<5.0.0
+
+# =============================================================================
+# DEPLOYMENT AND DISTRIBUTION
+# =============================================================================
+
+# Package distribution
+twine>=4.0.0,<5.0.0
+pkginfo>=1.9.0,<2.0.0
+
+# =============================================================================
+# JUPYTER AND NOTEBOOKS (OPTIONAL)
+# =============================================================================
+
+# Jupyter ecosystem
+jupyter>=1.0.0,<2.0.0
+jupyterlab>=3.5.0,<5.0.0
+ipywidgets>=8.0.0,<9.0.0
+
+# Enhanced notebook features
+tqdm>=4.64.0,<5.0.0  # Progress bars
+
+# =============================================================================
+# MACHINE LEARNING (OPTIONAL)
+# =============================================================================
+
+# Scientific computing extensions
+scikit-learn>=1.1.0,<2.0.0
+pandas>=1.5.0,<3.0.0
+
+# Network analysis (for centrality calculations)
+networkx>=2.8.0,<4.0.0
+
+# =============================================================================
+# CONFIGURATION AND UTILITIES
+# =============================================================================
+
+# Configuration management
+pyyaml>=6.0.0,<7.0.0
+toml>=0.10.2,<1.0.0
+
+# Command line utilities
+click>=8.0.0,<9.0.0
+rich>=12.0.0,<14.0.0  # Rich text and beautiful formatting
+
+# Date and time utilities
+python-dateutil>=2.8.0,<3.0.0
+
+# =============================================================================
+# OPTIONAL DEPENDENCIES FOR ADVANCED FEATURES
+# =============================================================================
+
+# GPU acceleration (optional, uncomment if needed)
+# cupy-cuda11x>=10.0.0,<12.0.0  # For CUDA 11.x
+# cupy-cuda12x>=10.0.0,<12.0.0  # For CUDA 12.x
+
+# High-performance computing (optional)
+# mpi4py>=3.1.0,<4.0.0  # For MPI parallelization
+# h5py>=3.7.0,<4.0.0    # For HDF5 data storage
+
+# Cloud storage (optional)
+# boto3>=1.26.0,<2.0.0      # AWS S3
+# google-cloud-storage>=2.7.0,<3.0.0  # Google Cloud Storage
+
+# =============================================================================
+# PLATFORM-SPECIFIC OPTIMIZATIONS
+# =============================================================================
+
+# Intel Math Kernel Library (optional, for Intel CPUs)
+# mkl>=2022.0.0,<2024.0.0
+# intel-numpy>=1.21.0,<2.0.0
+
+# Apple Silicon optimizations (optional, for M1/M2 Macs)
+# tensorflow-macos>=2.9.0,<3.0.0; platform_machine == "arm64" and sys_platform == "darwin"

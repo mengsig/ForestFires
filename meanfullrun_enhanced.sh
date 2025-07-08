@@ -44,29 +44,97 @@ trap 'handle_error $LINENO' ERR
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly PROJECT_ROOT="$(cd "$SCRIPT_DIR" && pwd)"
 
-# Load environment
-if [[ -f "$PROJECT_ROOT/env.sh" ]]; then
-    source "$PROJECT_ROOT/env.sh"
-    log_info "Loaded environment configuration"
-else
-    log_warning "env.sh not found, proceeding with default environment"
-fi
+# Load configuration from YAML file
+load_config() {
+    local config_file="$PROJECT_ROOT/simulation_config.yaml"
+    
+    if [[ ! -f "$config_file" ]]; then
+        log_error "Configuration file not found: $config_file"
+        log_error "Please ensure simulation_config.yaml exists in the project root"
+        exit 1
+    fi
+    
+    log_info "Loading configuration from: $config_file"
+    
+    # Use Python to read YAML configuration and export to environment
+    python3 -c "
+import yaml
+import sys
+import os
 
-# Simulation configuration
-readonly XLEN=${GRID_WIDTH:-250}
-readonly YLEN=${GRID_HEIGHT:-250}
-readonly SAVENAME=${SIMULATION_NAME:-"mean_full_250_4neighbors_enhanced"}
-readonly CENTRALITIES=(domirank random degree bonacich)
-readonly PERCENTAGES=(0 5 10 15 20 25 30)
+try:
+    with open('$config_file', 'r') as f:
+        config = yaml.safe_load(f)
+        
+    # Extract configuration values
+    sim_config = config.get('simulation', {})
+    perf_config = config.get('performance', {})
+    
+    # Grid size
+    grid_width = sim_config.get('grid_width', 250)
+    grid_height = sim_config.get('grid_height', 250)
+    
+    # Simulation name
+    default_name = sim_config.get('default_name', 'enhanced_fire_sim')
+    
+    # Centralities and percentages
+    centralities = sim_config.get('centralities', ['domirank', 'random', 'degree', 'bonacich'])
+    percentages = sim_config.get('fuel_break_percentages', [0, 5, 10, 15, 20, 25, 30])
+    
+    # Performance settings
+    max_parallel_jobs = perf_config.get('max_parallel_jobs', 0)
+    
+    # Export values
+    print(f'export GRID_WIDTH={grid_width}')
+    print(f'export GRID_HEIGHT={grid_height}')
+    print(f'export SIMULATION_NAME=\"{default_name}_$(date +%Y%m%d_%H%M%S)\"')
+    print(f'export CENTRALITIES=({\" \".join(centralities)})')
+    print(f'export FUEL_BREAK_PERCENTAGES=({\" \".join(map(str, percentages))})')
+    print(f'export MAX_PARALLEL_JOBS_CONFIG={max_parallel_jobs}')
+    
+except Exception as e:
+    print(f'echo \"Error loading configuration: {e}\"', file=sys.stderr)
+    sys.exit(1)
+" > /tmp/config_env.sh
+
+    if [[ $? -eq 0 ]]; then
+        source /tmp/config_env.sh
+        rm -f /tmp/config_env.sh
+        log_success "Configuration loaded successfully"
+    else
+        log_error "Failed to load configuration from YAML file"
+        exit 1
+    fi
+}
+
+# Load configuration
+load_config
+
+# Simulation configuration from YAML
+readonly XLEN=${GRID_WIDTH}
+readonly YLEN=${GRID_HEIGHT}
+readonly SAVENAME=${SIMULATION_NAME}
+
+# Convert space-separated strings to arrays
+read -ra CENTRALITIES_ARRAY <<< "$CENTRALITIES"
+read -ra PERCENTAGES_ARRAY <<< "$FUEL_BREAK_PERCENTAGES"
+readonly CENTRALITIES=("${CENTRALITIES_ARRAY[@]}")
+readonly PERCENTAGES=("${PERCENTAGES_ARRAY[@]}")
 
 # Performance configuration
 readonly NUM_CORES=$(nproc)
-readonly MAX_JOBS=${MAX_PARALLEL_JOBS:-$((NUM_CORES > 1 ? NUM_CORES - 1 : 1))}
+if [[ "${MAX_PARALLEL_JOBS_CONFIG:-0}" -eq 0 ]]; then
+    readonly MAX_JOBS=$((NUM_CORES > 1 ? NUM_CORES - 1 : 1))
+else
+    readonly MAX_JOBS=${MAX_PARALLEL_JOBS_CONFIG}
+fi
 
 log_info "Starting enhanced fire simulation pipeline"
 log_info "Configuration:"
 log_info "  Grid size: ${XLEN}x${YLEN}"
 log_info "  Save name: $SAVENAME"
+log_info "  Centralities: ${CENTRALITIES[*]}"
+log_info "  Percentages: ${PERCENTAGES[*]}"
 log_info "  Max parallel jobs: $MAX_JOBS"
 log_info "  CPU cores available: $NUM_CORES"
 
@@ -166,26 +234,47 @@ run_simulations() {
     local failed_jobs=0
     local job_pids=()
     
-    # Create a temporary directory for job tracking
-    local temp_dir=$(mktemp -d)
-    trap "rm -rf $temp_dir" EXIT
+    # Create a temporary directory for job tracking with safer approach
+    local temp_dir
+    temp_dir=$(mktemp -d -t fire_sim_XXXXXX)
+    if [[ ! -d "$temp_dir" ]]; then
+        log_error "Failed to create temporary directory"
+        return 1
+    fi
+    
+    log_info "Using temporary directory: $temp_dir"
+    
+    # Ensure cleanup on exit
+    cleanup_temp() {
+        if [[ -d "$temp_dir" ]]; then
+            rm -rf "$temp_dir"
+            log_info "Cleaned up temporary directory: $temp_dir"
+        fi
+    }
+    trap cleanup_temp EXIT
     
     for percentage in "${PERCENTAGES[@]}"; do
         for centrality in "${CENTRALITIES[@]}"; do
             throttle_jobs
             
-            (
+            # Launch job in background with proper variable passing
+            {
                 local job_id="${centrality}_${percentage}"
                 local start_time=$(date +%s)
+                local log_file="$temp_dir/${job_id}.log"
                 local status_file="$temp_dir/${job_id}.status"
+                
+                # Ensure temp directory exists in subshell
+                mkdir -p "$temp_dir"
                 
                 log_info "Starting simulation: $centrality @ ${percentage}% fuel breaks"
                 
+                # Run simulation and capture output
                 if python3 src/scripts/simulate_average_enhanced.py \
                     "${XLEN}x${YLEN}" \
                     "$SAVENAME" \
                     "$centrality" \
-                    "$percentage" > "$temp_dir/${job_id}.log" 2>&1; then
+                    "$percentage" > "$log_file" 2>&1; then
                     
                     local end_time=$(date +%s)
                     local duration=$((end_time - start_time))
@@ -194,9 +283,9 @@ run_simulations() {
                 else
                     echo "FAILED" > "$status_file"
                     log_error "Failed simulation: $job_id"
-                    log_error "Check log: $temp_dir/${job_id}.log"
+                    log_error "Check log: $log_file"
                 fi
-            ) &
+            } &
             
             job_pids+=($!)
             ((total_jobs++))

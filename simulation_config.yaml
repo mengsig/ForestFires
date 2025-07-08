@@ -1,0 +1,252 @@
+# Fire Simulation Configuration
+# This file contains all configuration parameters for the fire simulation project
+# All scripts will read from this centralized configuration
+
+# =============================================================================
+# SIMULATION PARAMETERS
+# =============================================================================
+
+simulation:
+  # Grid dimensions
+  grid_width: 250
+  grid_height: 250
+  
+  # Default simulation name (can be overridden)
+  default_name: "enhanced_fire_sim"
+  
+  # Number of parallel simulations to average
+  num_parallel_simulations: 100
+  
+  # Time step calculation parameters
+  time_step_multiplier: 2500
+  time_step_divisor: 400
+  
+  # Ignition parameters
+  x_offset: 100
+  y_offset: 100
+  
+  # Available centrality measures
+  centralities:
+    - "domirank"
+    - "random" 
+    - "degree"
+    - "bonacich"
+  
+  # Fuel break percentages to test
+  fuel_break_percentages:
+    - 0
+    - 5
+    - 10
+    - 15
+    - 20
+    - 25
+    - 30
+
+# =============================================================================
+# PERFORMANCE CONFIGURATION
+# =============================================================================
+
+performance:
+  # Maximum parallel jobs (0 = auto-detect based on CPU cores)
+  max_parallel_jobs: 0
+  
+  # Process priority (normal, high, low)
+  process_priority: "normal"
+  
+  # Memory optimization settings
+  numpy_num_threads: 1
+  omp_num_threads: 1
+  
+  # Memory limit per process (MB, 0 = no limit)
+  memory_limit_mb: 0
+  
+  # Enable/disable multiprocessing
+  enable_parallel_processing: true
+
+# =============================================================================
+# FILE PATHS AND DIRECTORIES
+# =============================================================================
+
+paths:
+  # Project root (will be auto-detected if not specified)
+  project_root: ""
+  
+  # Raster data directory
+  raster_data_dir: "cropped_rasters"
+  
+  # Results output directory
+  results_dir: "src/results"
+  
+  # Temporary files directory
+  temp_dir: "/tmp/fire_simulation"
+  
+  # Scripts directory
+  scripts_dir: "src/scripts"
+  
+  # Utils directory
+  utils_dir: "src/utils"
+
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+
+logging:
+  # Log level (DEBUG, INFO, WARNING, ERROR)
+  level: "INFO"
+  
+  # Enable/disable colored output
+  colored_output: true
+  
+  # Log file location (empty = stdout only)
+  log_file: ""
+  
+  # Enable/disable timestamps in logs
+  include_timestamps: true
+  
+  # Log format
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# =============================================================================
+# VISUALIZATION SETTINGS
+# =============================================================================
+
+visualization:
+  # Default colormap for heatmaps
+  default_colormap: "viridis"
+  
+  # Image output format
+  image_format: "png"
+  
+  # Image DPI (dots per inch)
+  image_dpi: 300
+  
+  # Figure size (width, height) in inches
+  figure_size: [12, 8]
+  
+  # Enable/disable animation generation
+  generate_animations: false
+  
+  # Animation frame rate (FPS)
+  animation_fps: 10
+
+# =============================================================================
+# RASTER DATA CONFIGURATION
+# =============================================================================
+
+raster_data:
+  # Available raster types
+  types:
+    - "slp"    # slope
+    - "asp"    # aspect
+    - "dem"    # digital elevation model
+    - "cc"     # canopy cover
+    - "cbd"    # canopy bulk density
+    - "cbh"    # canopy base height
+    - "ch"     # canopy height
+    - "fbfm"   # fuel model
+  
+  # Data type mappings for cube conversion
+  cube_datatypes:
+    slp: "slp"
+    asp: "asp"
+    dem: "dem"
+    cc: "cc"
+    cbd: "cbd"
+    cbh: "cbh"
+    ch: "ch"
+    fbfm: "fbfm"
+
+# =============================================================================
+# FIRE SIMULATION PARAMETERS
+# =============================================================================
+
+fire_simulation:
+  # Space-time cube resolution
+  cube_resolution:
+    band_duration: 60    # minutes
+    cell_height: 30      # meters
+    cell_width: 30       # meters
+  
+  # Fire simulation timing
+  start_time: 0          # minutes
+  max_duration_factor: 0.75  # fraction of time_steps * 60
+  
+  # Fire model parameters
+  surface_lw_ratio_model: "rothermel"
+  
+  # Default fuel moisture values
+  fuel_moisture:
+    dead_1hr: 0.10
+    dead_10hr: 0.25
+    dead_100hr: 0.50
+    live_herbaceous: 0.90
+    live_woody: 0.60
+    foliar: 0.90
+  
+  # Wind parameters
+  wind:
+    speed_10m: 0         # m/s
+    upwind_direction: 0  # degrees
+  
+  # Adjustment factors
+  adjustments:
+    fuel_spread: 1.0
+    weather_spread: 1.0
+  
+  # Fuel break settings
+  fuel_break:
+    fuel_model_value: 91  # Fuel model for fuel breaks
+    canopy_cover_value: 0
+    canopy_bulk_density_value: 0
+
+# =============================================================================
+# VALIDATION AND REQUIREMENTS
+# =============================================================================
+
+requirements:
+  # Required Python version (minimum)
+  python_version: "3.8"
+  
+  # Required disk space (MB)
+  disk_space_mb: 1000
+  
+  # Required dependencies
+  dependencies:
+    - "numpy"
+    - "scipy"
+    - "matplotlib"
+    - "rasterio"
+    - "pyretechnics"
+  
+  # Optional dependencies
+  optional_dependencies:
+    - "seaborn"
+    - "plotly"
+    - "dask"
+    - "joblib"
+
+# =============================================================================
+# ADVANCED SETTINGS
+# =============================================================================
+
+advanced:
+  # Random seed for reproducible results (0 = random seed)
+  random_seed: 0
+  
+  # Enable/disable profiling
+  enable_profiling: false
+  
+  # Checkpoint interval (0 = no checkpointing)
+  checkpoint_interval: 0
+  
+  # Error handling settings
+  error_handling:
+    max_retries: 3
+    retry_delay: 5  # seconds
+    fail_fast: false
+  
+  # Debugging options
+  debug:
+    enable_debug_mode: false
+    save_intermediate_results: false
+    verbose_logging: false

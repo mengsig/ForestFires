@@ -40,6 +40,7 @@ sys.path.insert(0, project_root)
 from src.utils.loadingUtils import load_raster, convert_to_cube
 from src.utils.plottingUtils import save_matrix_as_heatmap
 from src.utils.parsingUtils import parse_args
+from src.utils.configManager import get_config
 
 
 class FireSimulationConfig:
@@ -47,18 +48,26 @@ class FireSimulationConfig:
     
     def __init__(self, x_length: int, y_length: int, save_name: str, 
                  centrality: str, fuel_break_fraction: int):
+        # Load global configuration
+        self.config_manager = get_config()
+        
+        # Basic parameters
         self.x_length = x_length
         self.y_length = y_length
         self.save_name = save_name
         self.centrality = centrality
         self.fuel_break_fraction = fuel_break_fraction
-        self.time_steps = int(2500 * np.sqrt(x_length * y_length) / 400)
-        self.x_offset = 100
-        self.y_offset = 100
-        self.num_simulations = 100  # Number of parallel simulations to average
         
-        # Setup paths
-        self.savedir = Path(f"results/{save_name}")
+        # Load parameters from configuration
+        self.time_steps = self.config_manager.get_time_steps(x_length, y_length)
+        sim_config = self.config_manager.get_simulation_config()
+        self.x_offset = sim_config.get('x_offset', 100)
+        self.y_offset = sim_config.get('y_offset', 100)
+        self.num_simulations = self.config_manager.get_num_parallel_simulations()
+        
+        # Setup paths using configuration
+        results_dir = self.config_manager.get_path('results_dir')
+        self.savedir = Path(results_dir) / save_name
         self.fuel_breaks_file = self.savedir / f"{centrality}_{fuel_break_fraction}.txt"
         self.fuel_breaks_img = self.savedir / f"{centrality}_{fuel_break_fraction}.png"
         
@@ -102,10 +111,15 @@ class RasterDataManager:
             logger.info("Applying fuel breaks...")
             self.fuel_breaks = np.loadtxt(self.config.fuel_breaks_file).astype(bool)
             
-            # Apply fuel breaks
-            self.raster_data["fbfm"][self.fuel_breaks] = 91
-            self.raster_data["cc"][self.fuel_breaks] = 0
-            self.raster_data["cbd"][self.fuel_breaks] = 0
+            # Get fuel break values from configuration
+            config_manager = self.config.config_manager
+            fire_config = config_manager.get_fire_simulation_config()
+            fuel_break_config = fire_config.get('fuel_break', {})
+            
+            # Apply fuel breaks using configuration values
+            self.raster_data["fbfm"][self.fuel_breaks] = fuel_break_config.get('fuel_model_value', 91)
+            self.raster_data["cc"][self.fuel_breaks] = fuel_break_config.get('canopy_cover_value', 0)
+            self.raster_data["cbd"][self.fuel_breaks] = fuel_break_config.get('canopy_bulk_density_value', 0)
             
             # Clean up files
             rel_img_name = self.config.fuel_breaks_img.name
@@ -147,18 +161,23 @@ class SpaceTimeCubeBuilder:
                                       self.config.time_steps, datatype=datatype)
             cubes[cube_name] = SpaceTimeCube(cube_shape, cube_data)
         
-        # Add constant cubes
+        # Add constant cubes from configuration
+        fire_config = self.config.get_fire_simulation_config()
+        fuel_moisture = fire_config.get('fuel_moisture', {})
+        wind_config = fire_config.get('wind', {})
+        adjustments = fire_config.get('adjustments', {})
+        
         constant_cubes = {
-            "wind_speed_10m": 0,
-            "upwind_direction": 0,
-            "fuel_moisture_dead_1hr": 0.10,
-            "fuel_moisture_dead_10hr": 0.25,
-            "fuel_moisture_dead_100hr": 0.50,
-            "fuel_moisture_live_herbaceous": 0.90,
-            "fuel_moisture_live_woody": 0.60,
-            "foliar_moisture": 0.90,
-            "fuel_spread_adjustment": 1.0,
-            "weather_spread_adjustment": 1.0,
+            "wind_speed_10m": wind_config.get('speed_10m', 0),
+            "upwind_direction": wind_config.get('upwind_direction', 0),
+            "fuel_moisture_dead_1hr": fuel_moisture.get('dead_1hr', 0.10),
+            "fuel_moisture_dead_10hr": fuel_moisture.get('dead_10hr', 0.25),
+            "fuel_moisture_dead_100hr": fuel_moisture.get('dead_100hr', 0.50),
+            "fuel_moisture_live_herbaceous": fuel_moisture.get('live_herbaceous', 0.90),
+            "fuel_moisture_live_woody": fuel_moisture.get('live_woody', 0.60),
+            "foliar_moisture": fuel_moisture.get('foliar', 0.90),
+            "fuel_spread_adjustment": adjustments.get('fuel_spread', 1.0),
+            "weather_spread_adjustment": adjustments.get('weather_spread', 1.0),
         }
         
         for name, value in constant_cubes.items():
@@ -176,15 +195,26 @@ def run_single_simulation(simulation_params: Tuple[Dict[str, SpaceTimeCube],
     space_time_cubes, cube_shape, grid_size, sim_id = simulation_params
     x_length, y_length = grid_size
     
+    # Load configuration for simulation parameters
+    config = get_config()
+    fire_config = config.get_fire_simulation_config()
+    
     # Random ignition point
     x_cord = np.random.randint(0, x_length)
     y_cord = np.random.randint(0, y_length)
     
     spread_state = els.SpreadState(cube_shape).ignite_cell((x_cord, y_cord))
     
-    cube_resolution = (60, 30, 30)  # minutes, meters, meters
-    start_time = 0
-    max_duration = int(cube_shape[0] * 3 / 4) * 60  # minutes
+    # Get cube resolution from configuration
+    cube_resolution = config.get_cube_resolution()
+    
+    # Get simulation timing from configuration
+    start_time = fire_config.get('start_time', 0)
+    max_duration_factor = fire_config.get('max_duration_factor', 0.75)
+    max_duration = int(cube_shape[0] * max_duration_factor) * 60  # minutes
+    
+    # Get fire model from configuration
+    surface_model = fire_config.get('surface_lw_ratio_model', 'rothermel')
     
     try:
         fire_spread_results = els.spread_fire_with_phi_field(
@@ -193,7 +223,7 @@ def run_single_simulation(simulation_params: Tuple[Dict[str, SpaceTimeCube],
             cube_resolution,
             start_time,
             max_duration,
-            surface_lw_ratio_model="rothermel",
+            surface_lw_ratio_model=surface_model,
         )
         
         spread_state = fire_spread_results["spread_state"]
@@ -232,9 +262,11 @@ class ParallelFireSimulator:
         """Run multiple simulations in parallel and aggregate results."""
         logger.info(f"Running {self.config.num_simulations} parallel simulations...")
         
-        # Determine optimal number of processes
-        num_processes = min(mp.cpu_count(), self.config.num_simulations)
-        logger.info(f"Using {num_processes} processes")
+        # Determine optimal number of processes from configuration
+        config_manager = self.config.config_manager
+        max_processes = config_manager.get_max_parallel_jobs()
+        num_processes = min(max_processes, self.config.num_simulations)
+        logger.info(f"Using {num_processes} processes (max configured: {max_processes})")
         
         # Prepare simulation parameters
         simulation_params = [

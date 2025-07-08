@@ -4,7 +4,7 @@ source env.sh
 
 num_cores=$(nproc)
 if (( num_cores > 1 )); then
-  max_jobs=$(( num_cores - 1 ))
+  max_jobs=2
 else
   max_jobs=1
 fi
@@ -20,7 +20,7 @@ throttle() {
 
 XLEN=250
 YLEN=250
-SAVENAME="full_250_4neighbors_mean"
+SAVENAME="mean_full_250_4neighbors"
 #source env.sh
 python src/scripts/create_adjacency.py "${XLEN}x${YLEN}" "$SAVENAME"
 
@@ -43,7 +43,7 @@ for perc in "${PERC[@]}"; do
     (
       frac=$(awk "BEGIN { printf \"%.2f\", ${perc} }")
       echo "=== Simulating $c @ fuel_break_fraction=$frac ==="
-      python src/scripts/simulate.py \
+      python src/scripts/simulate_average.py \
         "${XLEN}x${YLEN}" \
         "$SAVENAME" \
         "$c" \

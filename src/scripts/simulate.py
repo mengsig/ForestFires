@@ -141,7 +141,7 @@ while num_burned_cells < burned_cells_threshold:
                                                          cube_resolution,
                                                          start_time,
                                                          max_duration,
-                                                         surface_lw_ratio_model="rothermel")
+                                                         surface_lw_ratio_model="behave")
     runtime_stop        = time.perf_counter();
     stop_time           = fire_spread_results["stop_time"]      # minutes
     stop_condition      = fire_spread_results["stop_condition"] # "max duration reached" or "no burnable cells"

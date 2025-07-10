@@ -116,7 +116,7 @@ for i in range(directions):
                                                                      step,
                                                                      y_range,
                                                                      x_range,
-                                                                     surface_lw_ratio_model="rothermel")
+                                                                     surface_lw_ratio_model="behave")
 
 #============================================================================================
 # Calculate combined fire behavior in the direction of the azimuth (without wind limit)
@@ -128,7 +128,7 @@ for i in range(directions):
                                                                        y_range,
                                                                        x_range,
                                                                        use_wind_limit=False,
-                                                                       surface_lw_ratio_model="rothermel")
+                                                                       surface_lw_ratio_model="behave")
 
 #============================================================================================
 # TODO: do we use unlimited or limited?

@@ -40,7 +40,7 @@ def load_raster(name, x_interval=None, y_interval=None, raster_dir="cropped_rast
     return np.ascontiguousarray(data).astype(np.float32)
 
 
-def convert_to_cube(data, time_steps, datatype=None):
+def normalize(data, time_steps, datatype=None):
     """
     Converts input data into a 3D cube format for simulations.
 

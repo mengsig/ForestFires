@@ -12,7 +12,7 @@ project_root = os.path.abspath(os.path.join(script_dir, os.pardir, os.pardir))
 sys.path.insert(0, project_root)
 from src.utils.loadingUtils import (
     load_raster,
-    convert_to_cube,
+    normalize,
         )
 from src.utils.plottingUtils import (
     save_matrix_as_heatmap,
@@ -52,14 +52,14 @@ ch = load_raster("ch", xsubset, ysubset)
 fuel_model = load_raster("fbfm", xsubset, ysubset)
 
 #convert to cubes
-slope_cube = convert_to_cube(slope, time_steps, datatype = "slp")
-aspect_cube = convert_to_cube(aspect, time_steps, datatype = "asp")
-dem_cube   = convert_to_cube(dem, time_steps, datatype = "dem")
-cc_cube    = convert_to_cube(cc, time_steps, datatype = "cc")
-cbd_cube   = convert_to_cube(cbd, time_steps, datatype = "cbd")
-cbh_cube   = convert_to_cube(cbh, time_steps, datatype = "cbh")
-ch_cube    = convert_to_cube(ch, time_steps, datatype = "ch")
-fuel_model_cube    = convert_to_cube(fuel_model, time_steps, datatype = "fbfm")
+slope_cube = normalize(slope, time_steps, datatype = "slp")
+aspect_cube = normalize(aspect, time_steps, datatype = "asp")
+dem_cube   = normalize(dem, time_steps, datatype = "dem")
+cc_cube    = normalize(cc, time_steps, datatype = "cc")
+cbd_cube   = normalize(cbd, time_steps, datatype = "cbd")
+cbh_cube   = normalize(cbh, time_steps, datatype = "cbh")
+ch_cube    = normalize(ch, time_steps, datatype = "ch")
+fuel_model_cube    = normalize(fuel_model, time_steps, datatype = "fbfm")
 
 # Define cube shape (e.g. 24 hours)
 rows, cols = slope.shape

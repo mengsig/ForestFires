@@ -21,7 +21,7 @@ throttle() {
 
 XLEN=250
 YLEN=250
-SAVENAME="full_250_4neighbors"
+SAVENAME="250_4neighbors_full"
 #source env.sh
 python src/scripts/create_adjacency.py "${XLEN}x${YLEN}" "$SAVENAME"
 

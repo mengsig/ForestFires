@@ -4,7 +4,7 @@ source env.sh
 
 num_cores=$(nproc)
 if (( num_cores > 1 )); then
-  max_jobs=2
+  max_jobs=10
 else
   max_jobs=1
 fi
@@ -22,9 +22,9 @@ XLEN=250
 YLEN=250
 SAVENAME="mean_full_250_4neighbors"
 #source env.sh
-python src/scripts/create_adjacency.py "${XLEN}x${YLEN}" "$SAVENAME"
+python src/scripts/create_adjacency_nowind.py "${XLEN}x${YLEN}" "$SAVENAME"
 
-CENTRALITIES=(domirank random degree bonacich)
+CENTRALITIES=(protected_domirank domirank random degree bonacich)
 echo "Computing Fuel-Breaks for all centralities..."
 for c in "${CENTRALITIES[@]}"; do
   (
@@ -36,12 +36,18 @@ done
 echo "✅ Done Fuel-Breaks!"
 
 #— Example: parallel simulations (throttled)
-PERC=(0 5 10 15 20 25 30)
+PERC=(0 15)
 echo "▶ Simulating fire-spread for all centralities and fractions…"
 for perc in "${PERC[@]}"; do
   for c in "${CENTRALITIES[@]}"; do
+    # if perc==0, only run domirank
+    if [[ $perc -eq 0 && "$c" != "domirank" ]]; then
+      continue
+    fi
+
     (
-      frac=$(awk "BEGIN { printf \"%.2f\", ${perc} }")
+      # format into 0.00 or 15.00 etc.
+      frac=$(awk "BEGIN { printf \"%.2f\", $perc }")
       echo "=== Simulating $c @ fuel_break_fraction=$frac ==="
       python src/scripts/simulate_average.py \
         "${XLEN}x${YLEN}" \
@@ -52,15 +58,14 @@ for perc in "${PERC[@]}"; do
     throttle
   done
 done
-
 # wait for all simulation jobs
 wait
 echo "✅ All simulations complete!"
 
-echo "Generating plots..."
-
-python src/scripts/generate_plots.py \
-        "${XLEN}x${YLEN}" \
-        "$SAVENAME" \
-
-echo "✅ All simulations complete!"
+#echo "Generating plots..."
+#
+#python src/scripts/generate_plots.py \
+#        "${XLEN}x${YLEN}" \
+#        "$SAVENAME" \
+#
+#echo "✅ All simulations complete!"

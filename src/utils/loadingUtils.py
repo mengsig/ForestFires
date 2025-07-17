@@ -6,6 +6,7 @@ import numpy as np
 Utility functions for loading raster data used in fire spread modeling.
 """
 
+
 def load_raster(name, x_interval=None, y_interval=None, raster_dir="cropped_rasters"):
     """
     Loads a cropped raster and optionally sub-windows it.
@@ -40,7 +41,7 @@ def load_raster(name, x_interval=None, y_interval=None, raster_dir="cropped_rast
     return np.ascontiguousarray(data).astype(np.float32)
 
 
-def normalize(data, time_steps, datatype=None):
+def normalize(data, datatype=None):
     """
     Converts input data into a 3D cube format for simulations.
 
@@ -73,4 +74,4 @@ def normalize(data, time_steps, datatype=None):
         data = data / 10.0
 
     data = np.flip(data, axis=0)
-    return np.repeat(data[np.newaxis, ...], time_steps, axis=0)
+    return np.ascontiguousarray(data).astype(np.float32)

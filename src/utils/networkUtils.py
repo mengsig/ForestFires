@@ -1,24 +1,25 @@
 import networkx as nx
 import numpy as np
 
-def create_network(edgelist_path, sparse_array = False):
+
+def create_network_as_sparse_array(edgelist_path):
     edgelist = np.loadtxt(edgelist_path)
     G = nx.DiGraph()
     for u, v, w in edgelist:
-        G.add_edge(int(u), int(v), weight=np.log(float(w)+1)) 
-    if sparse_array:
-        GAdj = nx.to_scipy_sparse_array(G)
-        return GAdj
-    else:
-        return G
+        G.add_edge(int(u), int(v), weight=np.log(float(w) + 1))
+    GAdj = nx.to_scipy_sparse_array(G)
+    return GAdj
+
 
 def save_fuel_breaks(data, plot_degreec, basename, intervals, centrality):
     import os
     import sys
-    script_dir   = os.path.dirname(__file__)
+
+    script_dir = os.path.dirname(__file__)
     project_root = os.path.abspath(os.path.join(script_dir, os.pardir, os.pardir))
     sys.path.insert(0, project_root)
     from src.utils.plottingUtils import save_matrix_as_heatmap
+
     plot_degree = plot_degreec.copy()
     vmin = plot_degree.min()
     vmax = plot_degree.max()
@@ -28,38 +29,37 @@ def save_fuel_breaks(data, plot_degreec, basename, intervals, centrality):
         plot_degree[fuel_breaks] = np.inf
         try:
             np.savetxt(f"{basename}_{cutoff}.txt", fuel_breaks)
-            print(f"[GENERATING-FUEL-BREAKS-{centrality}:]: Saved file: {basename}_{cutoff}.txt")
+            print(
+                f"[GENERATING-FUEL-BREAKS-{centrality}:]: Saved file: {basename}_{cutoff}.txt"
+            )
 
             domirankConfig = {
-                    "matrix"  : plot_degree,
-                    "colors"  : "hot",
-                    "units"   : "m/min",
-                    "title"   : f"{centrality}",
-                    "filename": f"{basename}_{cutoff}.png",
-                    "vmin"    : vmin,
-                    "vmax"    : vmax,
-                    }
+                "matrix": plot_degree,
+                "colors": "hot",
+                "units": "m/min",
+                "title": f"{centrality}",
+                "filename": f"{basename}_{cutoff}.png",
+                "vmin": vmin,
+                "vmax": vmax,
+            }
             save_matrix_as_heatmap(**domirankConfig)
         except:
             raise ValueError("Problem saving file")
-    #plot original
+    # plot original
     config = {
-            "matrix"  : plot_degreec,
-            "colors"  : "hot",
-            "units"   : "m/min",
-            "title"   : "adjacency",
-            "filename": f"{basename}_adjacency.png",
-            "vmin"    : plot_degreec.min(),
-            "vmax"    : plot_degreec.max(),
-            "norm"    : True
-            }
+        "matrix": plot_degreec,
+        "colors": "hot",
+        "units": "m/min",
+        "title": "adjacency",
+        "filename": f"{basename}_adjacency.png",
+        "vmin": plot_degreec.min(),
+        "vmax": plot_degreec.max(),
+        "norm": True,
+    }
     save_matrix_as_heatmap(**config)
 
 
-
-
-
-#building network stuff used in src/scripts/create_adjacency.py
+# building network stuff used in src/scripts/create_adjacency.py
 def build_edgelist_from_spread_rates(spread_rate_mean, x, y):
     """
     Constructs an adjacency list with self‐loops on boundary nodes
@@ -79,18 +79,18 @@ def build_edgelist_from_spread_rates(spread_rate_mean, x, y):
 
     # 8‐neighborhood offsets (we’ll just ignore the diagonals if only 4 passed)
     directions = {
-        0:  (0, -1),   # N
-        1:  (1, -1),   # NE
-        2:  (1, 0),    # E
-        3:  (1, 1),    # SE
-        4:  (0, 1),    # S
-        5:  (-1, 1),   # SW
-        6:  (-1, 0),   # W
-        7:  (-1, -1),  # NW
+        0: (0, -1),  # N
+        1: (1, -1),  # NE
+        2: (1, 0),  # E
+        3: (1, 1),  # SE
+        4: (0, 1),  # S
+        5: (-1, 1),  # SW
+        6: (-1, 0),  # W
+        7: (-1, -1),  # NW
     }
 
     # detect whether only 4 cardinal layers were supplied
-    is_cardinal_only = (spread_rate_mean.shape[0] == 4)
+    is_cardinal_only = spread_rate_mean.shape[0] == 4
     expected_links = 4 if is_cardinal_only else 8
 
     for j in range(y):
@@ -101,7 +101,7 @@ def build_edgelist_from_spread_rates(spread_rate_mean, x, y):
 
             for d, (dx, dy) in directions.items():
                 # skip diagonals if only 4 directions are available
-                if is_cardinal_only and d not in (0,2,4,6):
+                if is_cardinal_only and d not in (0, 2, 4, 6):
                     continue
 
                 ni, nj = i + dx, j + dy
@@ -113,8 +113,8 @@ def build_edgelist_from_spread_rates(spread_rate_mean, x, y):
                     weight = spread_rate_mean[d, j, i]
                 else:
                     # map 4‐layer indices to [N,E,S,W]
-                    if d in (0,2,4,6):
-                        card_map = {0:0, 2:1, 4:2, 6:3}
+                    if d in (0, 2, 4, 6):
+                        card_map = {0: 0, 2: 1, 4: 2, 6: 3}
                         weight = spread_rate_mean[card_map[d], j, i]
                     else:
                         # unreachable

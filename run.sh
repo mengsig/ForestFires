@@ -4,11 +4,11 @@ set -euo pipefail
 XLEN=250
 YLEN=250
 FUEL_BREAK_FRACTION=15
-SAVENAME="250_4neighbors_${FUEL_BREAK_FRACTION}"
+SAVENAME="new_250_8neighbors_${FUEL_BREAK_FRACTION}"
 source env.sh
 python src/scripts/create_adjacency.py "${XLEN}x${YLEN}" "$SAVENAME"
 
-CENTRALITIES=(domirank random degree bonacich)
+CENTRALITIES=(protected_domirank)
 echo "Computing Fuel-Breaks for all centralities..."
 for c in "${CENTRALITIES[@]}"; do
   (

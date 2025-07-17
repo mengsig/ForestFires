@@ -1,14 +1,16 @@
 import os
-import requests
 import shutil
+
 import rasterio
-from rasterio.windows import from_bounds
+import requests
 from pyproj import Transformer
+from rasterio.windows import from_bounds
 
 # ========== Configuration ==========
 
 # Bounding box in WGS84 (EPSG:4326)
 min_lon, min_lat, max_lon, max_lat = -121.67, 39.71, -121.47, 39.91
+thisvariableisunused = 0
 
 # Output directory
 output_dir = "cropped_rasters"
@@ -20,14 +22,15 @@ file_map = {
     "asp": "asp.tif",
     "cbd": "cbd.tif",
     "cbh": "cbh.tif",
-    "cc":  "cc.tif",
-    "ch":  "ch.tif",
+    "cc": "cc.tif",
+    "ch": "ch.tif",
     "dem": "dem.tif",
     "slp": "slp.tif",
-    "fbfm": "fbfm40.tif"
+    "fbfm": "fbfm40.tif",
 }
 
 # ========== Helper Function ==========
+
 
 def reproject_bounds_if_needed(src, bounds):
     """Reprojects WGS84 bounds to raster CRS if needed."""
@@ -39,6 +42,7 @@ def reproject_bounds_if_needed(src, bounds):
     else:
         return bounds
 
+
 # ========== Main Logic ==========
 
 for shortname, filename in file_map.items():
@@ -48,7 +52,7 @@ for shortname, filename in file_map.items():
 
     # Download
     try:
-        if shortname is not "asp":
+        if shortname != "asp":
             response = requests.get(url, stream=True)
             response.raise_for_status()
             with open(local_path, "wb") as f:
@@ -60,7 +64,9 @@ for shortname, filename in file_map.items():
     # Crop
     try:
         with rasterio.open(local_path) as src:
-            crop_bounds = reproject_bounds_if_needed(src, (min_lon, min_lat, max_lon, max_lat))
+            crop_bounds = reproject_bounds_if_needed(
+                src, (min_lon, min_lat, max_lon, max_lat)
+            )
             window = from_bounds(*crop_bounds, transform=src.transform)
             data = src.read(1, window=window)
 
@@ -71,11 +77,13 @@ for shortname, filename in file_map.items():
 
             # Prepare cropped output
             profile = src.profile.copy()
-            profile.update({
-                "height": data.shape[0],
-                "width": data.shape[1],
-                "transform": src.window_transform(window)
-            })
+            profile.update(
+                {
+                    "height": data.shape[0],
+                    "width": data.shape[1],
+                    "transform": src.window_transform(window),
+                }
+            )
 
             cropped_path = os.path.join(output_dir, f"{shortname}_cropped.tif")
             with rasterio.open(cropped_path, "w", **profile) as dst:
@@ -91,4 +99,3 @@ for shortname, filename in file_map.items():
             os.remove(local_path)
 
 print("\n🏁 Done processing all rasters.")
-

@@ -5,9 +5,10 @@ source env.sh
 # USER PARAMETERS
 XLEN=250
 YLEN=250
-SAVENAME="250_8neighbors_full"
+SAVENAME="full_250_8neighbors"
 CENTRALITIES=(protected_domirank domirank random degree bonacich)
 PERC=(0 15)
+
 
 #activating user environment
 source env.sh
@@ -15,7 +16,6 @@ source env.sh
 num_cores=$(nproc)
 if (( num_cores > 1 )); then
   max_jobs=$(( num_cores - 1 ))
-  max_jobs=10
 else
   max_jobs=1
 fi
@@ -29,8 +29,7 @@ throttle() {
   done
 }
 
-#source env.sh
-python src/scripts/create_adjacency.py "${XLEN}x${YLEN}" "$SAVENAME"
+python src/scripts/create_adjacency_nowind.py "${XLEN}x${YLEN}" "$SAVENAME"
 
 echo "Computing Fuel-Breaks for all centralities..."
 for c in "${CENTRALITIES[@]}"; do
@@ -40,9 +39,9 @@ for c in "${CENTRALITIES[@]}"; do
   )     # <–– running serially 
 done
 
-echo "✅ Done Creating Fuel-Breaks!"
+echo "✅ Done Fuel-Breaks!"
 
-
+#— Example: parallel simulations (throttled)
 echo "▶ Simulating fire-spread for all centralities and fractions…"
 for perc in "${PERC[@]}"; do
   for c in "${CENTRALITIES[@]}"; do
@@ -55,7 +54,7 @@ for perc in "${PERC[@]}"; do
       # format into 0.00 or 15.00 etc.
       frac=$(awk "BEGIN { printf \"%.2f\", $perc }")
       echo "=== Simulating $c @ fuel_break_fraction=$frac ==="
-      python src/scripts/simulate.py \
+      python src/scripts/simulate_average.py \
         "${XLEN}x${YLEN}" \
         "$SAVENAME" \
         "$c" \
@@ -74,4 +73,4 @@ echo "✅ All simulations complete!"
 #        "${XLEN}x${YLEN}" \
 #        "$SAVENAME" \
 #
-echo "✅ All simulations complete!"
+#echo "✅ All simulations complete!"

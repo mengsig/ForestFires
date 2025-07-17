@@ -2,8 +2,14 @@
 
 If you are using **arch** linux, you can install directly via the command:
 
+```bash
+bash install.sh --IUseArchBtw
 ```
-bash install.sh
+
+If you are using **debian** with the *apt* package-manager, you can install via:
+
+```bash
+bash install.sh 
 ```
 
 Otherwise, on any **OS** you can install by first ensuring that you are using

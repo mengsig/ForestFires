@@ -58,6 +58,28 @@ Once you have created your desired configuration, simply run.
 bash fullrun.sh
 ```
 
+
+# Reproducing exactly paper results:
+If you are using a *debian* distribution with apt pkg-manager, then simply run:
+
+```bash
+bash reproduce.sh
+```
+
+If you are using *arch* with pacman and yay as a pkg-managers, then simply run:
+
+```bash
+bash reproduce.sh --IUseArchBtw
+```
+
+If you are on another OS: then please install the repository by following the instructions above, and then simply run:
+```bash
+bash run.sh & bash fullrun.sh
+```
+
+Your **results** will be in *results/* in two folders named *results/250_8neighbors* and *results/full_250_8neighbors* for the individual and aggregated results respectively.
+
+
 ### Enjoy (;
 
 

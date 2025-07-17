@@ -9,7 +9,7 @@ bash install.sh
 Otherwise, on any **OS** you can install by first ensuring that you are using
 python version **~Python3.10**. Thereafter, execute the following commands:
 
-```
+```bash
 git clone git@github.com:pyregence/pyretechnics.git
 git clone git@github.com:mengsig/DomiRank.git
 python -m venv forestfires
@@ -22,27 +22,38 @@ cd ..
 ```
 
 # Running Simulations and Creating Fire Breaks
-The ```run.sh``` script creates an easy script that will run all of 
-the required files in the correct order, by passing consistent argument
-types. Moreover, it does this for a list of specified centralities.
-To change the size of the lanscape, please navigate to run.sh and change
-the variables ```XLEN``` and ```YLEN``` to your desired size. Thereafter,
-a savename should be given that will store all results in *src/results/<savename>*.
-Once this is done, simply run:
+The *run.sh* script provides a bash user interface for the user to change various components of their simulation:
+1. ```XLEN``` - grid size in horizontal dimension.
+2. ```YLEN``` - grid size in vertical dimension.
+3. ```SAVENAME``` - results will be stored in *src/results/<savename>*.
+4. ```PERC``` - a vector of fuel-break fractions desired to investigate.
+5. ```CENTRALITIES``` - a vector of the names of the centralities desired to use for creating fuel-breaks. These are found / should be placed in *src/utils/centralityUtils.py*
 
-```
+Once you have created your desired configuration, simply run.
+
+```bash
 bash run.sh
 ```
 
-And all information should be stored in the *src/results/<savename>/* folder.
+And all the results should be stored in the *src/results/<savename>/* folder.
 
+# Running Aggregated Simulations and Creating Fire Breaks
+To run *run.sh* many times (default 100), please use the *fullrun.sh* bash script. Similarly, the arguments it takes are:
+1. ```XLEN``` - grid size in horizontal dimension.
+2. ```YLEN``` - grid size in vertical dimension.
+3. ```SAVENAME``` - results will be stored in *src/results/<savename>*.
+4. ```PERC``` - a vector of fuel-break fractions desired to investigate.
+5. ```CENTRALITIES``` - a vector of the names of the centralities desired to use for creating fuel-breaks. These are found / should be placed in *src/utils/centralityUtils.py*
+6. ```NUM_SIMULATIONS``` - an integer value that changes the total number of simulations considered in the aggregation of results.
 
-# Full Simulations with increasing Fuel-Breaks and plotting (work in progress)
-Simply run:
+Once you have created your desired configuration, simply run.
 
-```
+```bash
 bash fullrun.sh
 ```
 
+### Enjoy (;
 
-Enjoy ( :
+
+### By - Marcus Engsig
+

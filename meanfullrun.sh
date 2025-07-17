@@ -2,6 +2,17 @@
 set -euo pipefail
 source env.sh
 
+# USER PARAMETERS
+XLEN=250
+YLEN=250
+SAVENAME="250_8neighbors_full"
+CENTRALITIES=(protected_domirank domirank random degree bonacich)
+PERC=(0 15)
+
+
+#activating user environment
+source env.sh
+
 num_cores=$(nproc)
 if (( num_cores > 1 )); then
   max_jobs=10
@@ -18,13 +29,8 @@ throttle() {
   done
 }
 
-XLEN=250
-YLEN=250
-SAVENAME="mean_full_250_4neighbors"
-#source env.sh
 python src/scripts/create_adjacency_nowind.py "${XLEN}x${YLEN}" "$SAVENAME"
 
-CENTRALITIES=(protected_domirank domirank random degree bonacich)
 echo "Computing Fuel-Breaks for all centralities..."
 for c in "${CENTRALITIES[@]}"; do
   (
@@ -36,7 +42,6 @@ done
 echo "✅ Done Fuel-Breaks!"
 
 #— Example: parallel simulations (throttled)
-PERC=(0 15)
 echo "▶ Simulating fire-spread for all centralities and fractions…"
 for perc in "${PERC[@]}"; do
   for c in "${CENTRALITIES[@]}"; do

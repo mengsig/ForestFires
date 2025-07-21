@@ -3,9 +3,9 @@ set -euo pipefail
 source env.sh
 
 # USER PARAMETERS
-XLEN=250
-YLEN=250
-SAVENAME="250_8neighbors"
+XLEN=451
+YLEN=451
+SAVENAME="451_8neighbors_new"
 CENTRALITIES=(protected_domirank domirank random degree bonacich)
 PERC=(0 15)
 

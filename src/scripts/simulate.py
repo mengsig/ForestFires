@@ -28,7 +28,7 @@ from src.utils.plottingUtils import (
 
 # -------------Tunable parameters------------- #
 xlen, ylen, savename, centrality, fuel_break_fraction = parse_args()
-time_steps = int(5000 * np.sqrt(xlen * ylen) / (400))
+time_steps = int(100 * np.sqrt(xlen * ylen) / (250))
 # ----------end of tunable parameters----------#
 
 
@@ -49,6 +49,8 @@ xoffset = 100
 yoffset = 100
 xsubset = (xoffset, int(xoffset + xlen))
 ysubset = (yoffset, int(yoffset + ylen))
+
+x = np.random.uniform(0, 1)
 
 slope = load_raster("slp", xsubset, ysubset)
 aspect = load_raster("asp", xsubset, ysubset)
@@ -98,9 +100,9 @@ space_time_cubes = {
     "canopy_bulk_density": SpaceTimeCube(cube_shape, cbd_cube),
     "wind_speed_10m": SpaceTimeCube(cube_shape, 25),
     "upwind_direction": SpaceTimeCube(cube_shape, 45),
-    "fuel_moisture_dead_1hr": SpaceTimeCube(cube_shape, 0.10),
-    "fuel_moisture_dead_10hr": SpaceTimeCube(cube_shape, 0.25),
-    "fuel_moisture_dead_100hr": SpaceTimeCube(cube_shape, 0.50),
+    "fuel_moisture_dead_1hr": SpaceTimeCube(cube_shape, 0.05),
+    "fuel_moisture_dead_10hr": SpaceTimeCube(cube_shape, 0.10),
+    "fuel_moisture_dead_100hr": SpaceTimeCube(cube_shape, 0.25),
     "fuel_moisture_live_herbaceous": SpaceTimeCube(
         cube_shape, 0.90
     ),  # kg moisture/kg ovendry weight
@@ -324,15 +326,16 @@ heatmap_configs = [
         "triangles": [(xcord, ycord)],
     },
     {
-        "matrix": output_matrices["time_of_arrival"],
+        "matrix": output_matrices["time_of_arrival"] / 60,
         "colors": "viridis",
-        "units": "minutes",
+        "units": "hours",
         "vmin": 1,
-        "vmax": stop_time,
+        "vmax": stop_time / 60,
         # "norm": True,
         "title": "Time of Arrival",
         "filename": f"{savedir}/els_time_of_arrival.png",
         "set_under": "white",
+        "triangles": [(xcord, ycord)],
     },
 ]
 

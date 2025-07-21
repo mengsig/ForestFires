@@ -27,8 +27,8 @@ from src.utils.parsingUtils import (
 )
 
 # ------------- Tunable parameters ------------- #
-x_length, y_length, save_name, centrality, fuel_break_fraction = parse_args()
-time_steps = int(2500 * np.sqrt(x_length * y_length) / 400)
+xlen, ylen, save_name, centrality, fuel_break_fraction = parse_args()
+time_steps = int(50 * np.sqrt(xlen * ylen) / (250))
 # ---------- End of tunable parameters ---------- #
 
 # Define the directory for saving results
@@ -44,8 +44,8 @@ os.makedirs(savedir, exist_ok=True)
 # Load raster data with offsets
 x_offset = 100
 y_offset = 100
-x_subset = (x_offset, int(x_offset + x_length))
-y_subset = (y_offset, int(y_offset + y_length))
+x_subset = (x_offset, int(x_offset + xlen))
+y_subset = (y_offset, int(y_offset + ylen))
 
 # Load raster data
 slope = load_raster("slp", x_subset, y_subset)
@@ -94,9 +94,9 @@ space_time_cubes = {
     "canopy_bulk_density": SpaceTimeCube(cube_shape, cbd_cube),
     "wind_speed_10m": SpaceTimeCube(cube_shape, 0),
     "upwind_direction": SpaceTimeCube(cube_shape, 0),
-    "fuel_moisture_dead_1hr": SpaceTimeCube(cube_shape, 0.10),
-    "fuel_moisture_dead_10hr": SpaceTimeCube(cube_shape, 0.25),
-    "fuel_moisture_dead_100hr": SpaceTimeCube(cube_shape, 0.50),
+    "fuel_moisture_dead_1hr": SpaceTimeCube(cube_shape, 0.05),
+    "fuel_moisture_dead_10hr": SpaceTimeCube(cube_shape, 0.10),
+    "fuel_moisture_dead_100hr": SpaceTimeCube(cube_shape, 0.25),
     "fuel_moisture_live_herbaceous": SpaceTimeCube(cube_shape, 0.90),
     "fuel_moisture_live_woody": SpaceTimeCube(cube_shape, 0.60),
     "foliar_moisture": SpaceTimeCube(cube_shape, 0.90),
@@ -110,17 +110,17 @@ start_time = 0  # in minutes
 max_duration = int(time_steps * 3 / 4) * 60  # in minutes
 
 # Ignite fire in the center of the grid
-x_cord, y_cord = int(x_length / 2), int(y_length / 2)
+x_cord, y_cord = int(xlen / 2), int(ylen / 2)
 num_burned_cells = 0
-burned_cells_threshold = (x_length * y_length) / np.sqrt(x_length * y_length)
+burned_cells_threshold = (xlen * ylen) / np.sqrt(xlen * ylen)
 
 # Change this variable to control the number of simulations to aggregate mean
 # behaviour over.
 N = 100
 seed = 42
 np.random.seed(seed)
-xcoordinates = (np.random.rand(N) * x_length).astype(np.int32)
-ycoordinates = (np.random.rand(N) * y_length).astype(np.int32)
+xcoordinates = (np.random.rand(N) * xlen).astype(np.int32)
+ycoordinates = (np.random.rand(N) * ylen).astype(np.int32)
 counter = 0
 triangles = []
 for i in range(N):  # Run N simulations
@@ -164,7 +164,9 @@ for i in range(N):  # Run N simulations
         output_matrices = {k: v.astype(np.float32) for k, v in temp.items()}
     else:
         output_matrices["phi"] += temp["phi"]
-        output_matrices["fire_type"] += temp["fire_type"].astype(np.float32)
+        output_matrices["fire_type"] += (
+            temp["fire_type"].astype(np.float32) > 0
+        ).astype(np.float32)
         output_matrices["spread_rate"] += temp["spread_rate"]
         output_matrices["spread_direction"] += temp["spread_direction"]
         output_matrices["fireline_intensity"] += temp["fireline_intensity"]
@@ -271,8 +273,10 @@ heatmap_configs = [
     {
         "matrix": output_matrices["fire_type"],
         "colors": "hot",
-        "units": "0=unburned, 1=surface, 2=passive_crown, 3=active_crown",
+        "units": "burning probability",
         "title": "Fire Type",
+        "vmin": 0,
+        "vmax": 1,
         "filename": f"{savedir}/els_fire_type.png",
     },
     {
@@ -328,13 +332,13 @@ heatmap_configs = [
     },
 ]
 
-output_matrices["phi"][0:x_length, 0:y_length][fuel_breaks] = np.nan
-output_matrices["fire_type"][0:x_length, 0:y_length][fuel_breaks] = 0
-output_matrices["spread_rate"][0:x_length, 0:y_length][fuel_breaks] = np.nan
-output_matrices["spread_direction"][0:x_length, 0:y_length][fuel_breaks] = np.nan
-output_matrices["fireline_intensity"][0:x_length, 0:y_length][fuel_breaks] = np.inf
-output_matrices["flame_length"][0:x_length, 0:y_length][fuel_breaks] = np.nan
-output_matrices["time_of_arrival"][0:x_length, 0:y_length][fuel_breaks] = np.nan
+output_matrices["phi"][0:xlen, 0:ylen][fuel_breaks] = np.nan
+output_matrices["fire_type"][0:xlen, 0:ylen][fuel_breaks] = 0
+output_matrices["spread_rate"][0:xlen, 0:ylen][fuel_breaks] = np.nan
+output_matrices["spread_direction"][0:xlen, 0:ylen][fuel_breaks] = np.nan
+output_matrices["fireline_intensity"][0:xlen, 0:ylen][fuel_breaks] = np.inf
+output_matrices["flame_length"][0:xlen, 0:ylen][fuel_breaks] = np.nan
+output_matrices["time_of_arrival"][0:xlen, 0:ylen][fuel_breaks] = np.nan
 
 # contour_configs = []
 

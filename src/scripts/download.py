@@ -9,14 +9,14 @@ from rasterio.windows import from_bounds
 # ========== Configuration ==========
 
 # Bounding box in WGS84 (EPSG:4326)
-#min_lon, min_lat, max_lon, max_lat = -121.67, 39.71, -121.47, 39.91
+min_lon, min_lat, max_lon, max_lat = -121.67, 39.71, -121.47, 39.91
 
-min_lon, min_lat, max_lon, max_lat = (
-   -117.52,
-   33.45,
-   -117.32,
-   33.65,
-)
+#min_lon, min_lat, max_lon, max_lat = (
+#   -117.52,
+#   33.45,
+#   -117.32,
+#   33.65,
+#)
 # Output directory
 output_dir = "cropped_rasters"
 os.makedirs(output_dir, exist_ok=True)

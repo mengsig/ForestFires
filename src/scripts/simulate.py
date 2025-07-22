@@ -28,7 +28,7 @@ from src.utils.plottingUtils import (
 
 # -------------Tunable parameters------------- #
 xlen, ylen, savename, centrality, fuel_break_fraction = parse_args()
-time_steps = int(100 * np.sqrt(xlen * ylen) / (250))
+time_steps = int(500 * np.sqrt(xlen * ylen) / (250))
 # ----------end of tunable parameters----------#
 
 
@@ -93,23 +93,23 @@ cube_shape = (time_steps, rows, cols)
 space_time_cubes = {
     "slope": SpaceTimeCube(cube_shape, slope_cube),
     "aspect": SpaceTimeCube(cube_shape, aspect_cube),
-    "fuel_model": SpaceTimeCube(cube_shape, fuel_model),
+    "fuel_model": SpaceTimeCube(cube_shape, fuel_model_cube),
     "canopy_cover": SpaceTimeCube(cube_shape, cc_cube),
     "canopy_height": SpaceTimeCube(cube_shape, ch_cube),
     "canopy_base_height": SpaceTimeCube(cube_shape, cbh_cube),
     "canopy_bulk_density": SpaceTimeCube(cube_shape, cbd_cube),
     "wind_speed_10m": SpaceTimeCube(cube_shape, 25),
-    "upwind_direction": SpaceTimeCube(cube_shape, 45),
-    "fuel_moisture_dead_1hr": SpaceTimeCube(cube_shape, 0.05),
-    "fuel_moisture_dead_10hr": SpaceTimeCube(cube_shape, 0.10),
+    "upwind_direction": SpaceTimeCube(cube_shape, 225),
+    "fuel_moisture_dead_1hr": SpaceTimeCube(cube_shape, 0.10),
+    "fuel_moisture_dead_10hr": SpaceTimeCube(cube_shape, 0.15),
     "fuel_moisture_dead_100hr": SpaceTimeCube(cube_shape, 0.25),
     "fuel_moisture_live_herbaceous": SpaceTimeCube(
-        cube_shape, 0.90
+        cube_shape, 0.10
     ),  # kg moisture/kg ovendry weight
     "fuel_moisture_live_woody": SpaceTimeCube(
-        cube_shape, 0.60
+        cube_shape, 0.10
     ),  # kg moisture/kg ovendry weight
-    "foliar_moisture": SpaceTimeCube(cube_shape, 0.90),
+    "foliar_moisture": SpaceTimeCube(cube_shape, 0.10),
     "fuel_spread_adjustment": SpaceTimeCube(cube_shape, 1.0),
     "weather_spread_adjustment": SpaceTimeCube(cube_shape, 1.0),
 }
@@ -121,7 +121,7 @@ start_time = 0  # minutes
 max_duration = int(time_steps * 2 / 3) * 60  # minutes
 
 # ignite in the middle
-xcord, ycord = xlen - int(xlen / 8), ylen - int(ylen / 8)
+xcord, ycord = int(xlen / 8), int(ylen / 8)
 num_burned_cells = 0
 burned_cells_threshold = (xlen * ylen) / np.sqrt(xlen * ylen)
 

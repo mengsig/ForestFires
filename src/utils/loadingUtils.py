@@ -37,7 +37,6 @@ def load_raster(name, x_interval=None, y_interval=None, raster_dir="cropped_rast
         data = data[y0:y1, x0:x1]
 
     # Flip so row 0 becomes bottom
-    data = np.flip(data, axis=0)
     return np.ascontiguousarray(data).astype(np.float32)
 
 
@@ -73,5 +72,5 @@ def normalize(data, datatype=None):
     if datatype == "cbh":
         data = data / 10.0
 
-    data = np.flip(data, axis=0)
+    data = data
     return np.ascontiguousarray(data).astype(np.float32)

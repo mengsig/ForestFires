@@ -70,19 +70,23 @@ cube_shape = (time_steps, rows, cols)
 space_time_cubes = {
     "slope": SpaceTimeCube(cube_shape, slope_cube),
     "aspect": SpaceTimeCube(cube_shape, aspect_cube),
-    "fuel_model": SpaceTimeCube(cube_shape, fuel_model),
+    "fuel_model": SpaceTimeCube(cube_shape, fuel_model_cube),
     "canopy_cover": SpaceTimeCube(cube_shape, cc_cube),
     "canopy_height": SpaceTimeCube(cube_shape, ch_cube),
     "canopy_base_height": SpaceTimeCube(cube_shape, cbh_cube),
     "canopy_bulk_density": SpaceTimeCube(cube_shape, cbd_cube),
     "wind_speed_10m": SpaceTimeCube(cube_shape, 0),
     "upwind_direction": SpaceTimeCube(cube_shape, 0),
-    "fuel_moisture_dead_1hr": SpaceTimeCube(cube_shape, 0.05),
-    "fuel_moisture_dead_10hr": SpaceTimeCube(cube_shape, 0.10),
+    "fuel_moisture_dead_1hr": SpaceTimeCube(cube_shape, 0.10),
+    "fuel_moisture_dead_10hr": SpaceTimeCube(cube_shape, 0.15),
     "fuel_moisture_dead_100hr": SpaceTimeCube(cube_shape, 0.25),
-    "fuel_moisture_live_herbaceous": SpaceTimeCube(cube_shape, 0.90),
-    "fuel_moisture_live_woody": SpaceTimeCube(cube_shape, 0.60),
-    "foliar_moisture": SpaceTimeCube(cube_shape, 0.90),
+    "fuel_moisture_live_herbaceous": SpaceTimeCube(
+        cube_shape, 0.10
+    ),  # kg moisture/kg ovendry weight
+    "fuel_moisture_live_woody": SpaceTimeCube(
+        cube_shape, 0.10
+    ),  # kg moisture/kg ovendry weight
+    "foliar_moisture": SpaceTimeCube(cube_shape, 0.10),
     "fuel_spread_adjustment": SpaceTimeCube(cube_shape, 1.0),
     "weather_spread_adjustment": SpaceTimeCube(cube_shape, 1.0),
 }

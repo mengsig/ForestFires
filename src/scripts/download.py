@@ -9,17 +9,14 @@ from rasterio.windows import from_bounds
 # ========== Configuration ==========
 
 # Bounding box in WGS84 (EPSG:4326)
-min_lon, min_lat, max_lon, max_lat = -121.67, 39.71, -121.47, 39.91
-# new location
-# city center -117.469 33.547
-# new area: -117.369, 33.447, -117.569, 33.647
-# min_lon, min_lat, max_lon, max_lat = (
-#    -117.52,
-#    33.45,
-#    -117.32,
-#    33.65,
-# )
+#min_lon, min_lat, max_lon, max_lat = -121.67, 39.71, -121.47, 39.91
 
+min_lon, min_lat, max_lon, max_lat = (
+   -117.52,
+   33.45,
+   -117.32,
+   33.65,
+)
 # Output directory
 output_dir = "cropped_rasters"
 os.makedirs(output_dir, exist_ok=True)
@@ -59,15 +56,15 @@ for shortname, filename in file_map.items():
     local_path = os.path.join(output_dir, filename)
 
     # Download
-    try:
-        if shortname != "asp":
-            response = requests.get(url, stream=True)
-            response.raise_for_status()
-            with open(local_path, "wb") as f:
-                shutil.copyfileobj(response.raw, f)
-    except Exception as e:
-        print(f"❌ Failed to download {filename}: {e}")
-        continue
+    #    try:
+    #        if shortname != "asp":
+    #            response = requests.get(url, stream=True)
+    #            response.raise_for_status()
+    #            with open(local_path, "wb") as f:
+    #                shutil.copyfileobj(response.raw, f)
+    #    except Exception as e:
+    #        print(f"❌ Failed to download {filename}: {e}")
+    #        continue
 
     # Crop
     try:

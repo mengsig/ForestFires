@@ -277,7 +277,7 @@ heatmap_configs = [
     {
         "matrix": output_matrices["fire_type"],
         "colors": "hot",
-        "units": "burning probability",
+        "units": "fire occurance",
         "title": "Fire Type",
         "vmin": 0,
         "vmax": 1,
@@ -318,7 +318,7 @@ heatmap_configs = [
         "filename": f"{savedir}/els_flame_length.png",
     },
     {
-        "matrix": np.flip(cc_cube[:, :], axis=0),
+        "matrix": cc_cube[:, :],
         "colors": "Greens",
         "units": "coverage",
         "title": "canopy coverage",

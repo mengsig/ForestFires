@@ -6,8 +6,8 @@ source env.sh
 XLEN=251
 YLEN=251
 SAVENAME="251_8neighbors_new"
-CENTRALITIES=(protected_domirank domirank random degree bonacich)
-PERC=(0 15)
+CENTRALITIES=(protected_domirank)
+PERC=(15)
 
 #activating user environment
 source env.sh

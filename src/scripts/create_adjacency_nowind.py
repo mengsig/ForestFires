@@ -157,7 +157,7 @@ edgelist_array = np.array(edgelist, dtype=np.float32)
 np.savetxt(f"{savedir}/spread_edge_list.txt", edgelist_array)
 
 protected = spread_rate_mean.copy()
-protected[:, 218:230, 145:157] = 0  # protected area
+protected[:, 113:125, 23:35] = 0  # protected area
 edgelist_protected = build_edgelist_from_spread_rates(protected, x, y)
 edgelist_protected_array = np.array(edgelist_protected, dtype=np.float32)
 np.savetxt(f"{savedir}/spread_edge_list_protected.txt", edgelist_protected_array)

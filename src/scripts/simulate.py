@@ -61,6 +61,7 @@ cbh = load_raster("cbh", xsubset, ysubset)
 ch = load_raster("ch", xsubset, ysubset)
 fuel_model = load_raster("fbfm", xsubset, ysubset)
 
+
 # implementing fuel-breaks
 if fuel_breaks_file != "":
     fuel_breaks = np.loadtxt(fuel_breaks_file).astype(bool)
@@ -263,7 +264,17 @@ with open(out_path, "w") as fout, redirect_stdout(fout):
 # ------------ Finished saving statistics ------------
 import numpy as np
 
+
 output_matrices["fireline_intensity"] += 0.01
+
+output_matrices["phi"][0:xlen, 0:ylen][fuel_breaks] = np.nan
+output_matrices["fire_type"][0:xlen, 0:ylen][fuel_breaks] = 0
+output_matrices["spread_rate"][0:xlen, 0:ylen][fuel_breaks] = np.nan
+output_matrices["spread_direction"][0:xlen, 0:ylen][fuel_breaks] = np.nan
+output_matrices["fireline_intensity"][0:xlen, 0:ylen][fuel_breaks] = np.inf
+output_matrices["flame_length"][0:xlen, 0:ylen][fuel_breaks] = np.nan
+output_matrices["time_of_arrival"][0:xlen, 0:ylen][fuel_breaks] = np.nan
+cc_cube[fuel_breaks] = np.nan
 # See https://matplotlib.org/stable/gallery/color/colormap_reference.html for the available options for "colors"
 heatmap_configs = [
     {
@@ -318,7 +329,7 @@ heatmap_configs = [
         "filename": f"{savedir}/els_flame_length.png",
     },
     {
-        "matrix": np.flip(cc_cube[:, :], axis=0),
+        "matrix": cc_cube[:, :],
         "colors": "Greens",
         "units": "coverage",
         "title": "canopy coverage",
@@ -339,13 +350,6 @@ heatmap_configs = [
     },
 ]
 
-output_matrices["phi"][0:xlen, 0:ylen][fuel_breaks] = np.nan
-output_matrices["fire_type"][0:xlen, 0:ylen][fuel_breaks] = 0
-output_matrices["spread_rate"][0:xlen, 0:ylen][fuel_breaks] = np.nan
-output_matrices["spread_direction"][0:xlen, 0:ylen][fuel_breaks] = np.nan
-output_matrices["fireline_intensity"][0:xlen, 0:ylen][fuel_breaks] = np.inf
-output_matrices["flame_length"][0:xlen, 0:ylen][fuel_breaks] = np.nan
-output_matrices["time_of_arrival"][0:xlen, 0:ylen][fuel_breaks] = np.nan
 
 # contour_configs = []
 
